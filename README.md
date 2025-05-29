@@ -13,7 +13,7 @@ http://localhost:3000/api
 |--------|------------------------|-----------------------------------|
 | GET    | `/flights`             | Lấy danh sách tất cả chuyến bay   |
 | GET    | `/flights/:id`         | Lấy thông tin chuyến bay theo ID  |
-| GET    | `/flights/search/query`| Tìm kiếm chuyến bay theo query (tham số truyền query string) |
+| `POST` | `/flights/search`   | Tìm kiếm chuyến bay một chiều, khứ hồi, hoặc nhiều chặng (multi-city) thông qua `body JSON` |
 | PUT    | `/flights/:id/delay`   | Cập nhật trạng thái hoãn chuyến bay theo ID |
 
 ---
@@ -100,3 +100,30 @@ http://localhost:3000/api
 }
 ```
 
+#### 6. Tìm kiếm chuyến bay cho nhiều chặng - PUT /flights/:id/delay
+```json
+{
+  "legs": [
+    {
+      "from_airport_id": "SGN",
+      "to_airport_id": "HAN",
+      "date": "2025-06-01"
+    },
+    {
+      "from_airport_id": "HAN",
+      "to_airport_id": "DAD",
+      "date": "2025-06-05"
+    }
+  ]
+} 
+```
+## Return
+```json
+{
+  "success": true,
+  "data": [
+    [ /* Danh sách chuyến bay cho chặng 1 */ ],
+    [ /* Danh sách chuyến bay cho chặng 2 */ ]
+  ]
+}
+```

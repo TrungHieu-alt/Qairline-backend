@@ -100,7 +100,7 @@ http://localhost:3000/api
 }
 ```
 
-#### 6. Tìm kiếm chuyến bay cho nhiều chặng - PUT /flights/:id/delay
+#### 6. Tìm kiếm chuyến bay cho nhiều chặng - POST /flights/search
 ```json
 {
   "legs": [

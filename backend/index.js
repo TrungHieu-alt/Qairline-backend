@@ -1,23 +1,30 @@
 const express = require('express');
+const cors = require('cors');
+const morgan = require('morgan');
+const rateLimit = require('express-rate-limit');
+const router = require('./routes/routes');
+
 const app = express();
-require('dotenv').config(); // nếu dùng .env
 
-// Middleware để parse JSON
+// Middleware toàn cục
+app.use(cors({ origin: process.env.FRONTEND_URL }));
+app.use(morgan('combined')); // Logging
 app.use(express.json());
+app.use(
+  rateLimit({
+    windowMs: 15 * 60 * 1000, // 15 phút
+    max: 100, // Giới hạn 100 request mỗi window
+    message: { success: false, message: 'Quá nhiều yêu cầu, vui lòng thử lại sau' }
+  })
+);
 
-// Mount tất cả các routes
-app.use('/api/flights', require('./routes/flights'));
-app.use('/api/tickets', require('./routes/tickets'));
-app.use('/api/customers', require('./routes/customers'));
-app.use('/api/auth', require('./routes/auth'));
-app.use('/api/announcements', require('./routes/announcements'));
-app.use('/api/ticket-classes', require('./routes/ticketClasses'));
+// Routes
+app.use('/api', router);
 
-// Default route
-app.get('/', (req, res) => {
-  res.send('QAirline API is running');
+// Xử lý lỗi toàn cục
+app.use((err, req, res, next) => {
+  console.error(err.stack);
+  res.status(500).json({ success: false, message: 'Lỗi máy chủ nội bộ' });
 });
 
-// Start server
-const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => console.log(`🚀 Server is running on port ${PORT}`));
+app.listen(3000, () => console.log('Server chạy trên cổng 3000'));

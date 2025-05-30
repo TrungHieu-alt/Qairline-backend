@@ -19,6 +19,15 @@ exports.login = async (req, res) => {
   }
 };
 
+exports.linkAccount = async (req, res) => {
+  try {
+    const result = await CustomerAuthService.linkAccount(req.body);
+    res.json(result);
+  } catch (err) {
+    res.status(400).json({ error: err.message });
+  }
+};
+
 exports.logout = async (req, res) => {
   res.json({ message: 'Logged out successfully' });
 };

@@ -1,3 +1,5 @@
+const { body } = require('express-validator');
+
 exports.validateBookTicket = [
   body('flight_id').isUUID().withMessage('Invalid flight_id'),
   body('customer_id').isUUID().withMessage('Invalid customer_id'),

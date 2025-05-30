@@ -13,12 +13,22 @@ exports.getFlightById = async (req, res) => {
 };
 
 exports.searchFlights = async (req, res) => {
-  const flights = await flightService.searchFlights(req.query);
-  res.json({ success: true, data: flights });
+  const { legs } = req.body;
+
+  if (!Array.isArray(legs) || legs.length === 0)
+    return res.status(400).json({ success: false, message: 'legs must be a non-empty array' });
+
+  const results = await flightService.searchFlights(legs);
+  res.json({ success: true, data: results });
 };
 
 exports.delayFlight = async (req, res) => {
   const updated = await flightService.delayFlight(req.params.id, req.body.newDeparture, req.body.newArrival);
   if (!updated) return res.status(404).json({ success: false, message: 'Flight not found' });
   res.json({ success: true, data: updated });
+};
+
+exports.createFlight = async (req, res) => {
+  const flight = await flightService.createFlight(req.body);
+  res.status(201).json({ success: true, data: flight });
 };

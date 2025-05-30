@@ -1,4 +1,5 @@
 const Ticket = require('../models/Ticket');
+const CustomerService = require('./CustomerService');
 const db = require('../config/db');
 const { hasAvailableSeats } = require('../utils/serviceUtils');
 
@@ -82,6 +83,81 @@ class TicketService {
     }
   }
 
+  async bookTicketWithCustomer(data, user = null) {
+    // Kiểm tra dữ liệu bắt buộc
+    if (!data.email || !data.first_name || !data.last_name || !data.phone_number || !data.flight_id || !data.ticket_class_id || !data.cancellation_deadline) {
+      throw new Error('Email, first name, last name, phone number, flight_id, ticket_class_id, and cancellation_deadline are required for booking');
+    }
+
+    const client = await db.connect();
+
+    try {
+      await client.query('BEGIN');
+
+      // Tìm hoặc tạo khách hàng
+      let customer;
+      if (user && user.id) {
+        // Đăng nhập: Sử dụng customer_id từ token
+        customer = await CustomerService.updateCustomer(user.id, {
+          first_name: data.first_name,
+          last_name: data.last_name,
+          phone_number: data.phone_number,
+          identity_number: data.identity_number,
+          email: data.email
+        });
+      } else {
+        // Không đăng nhập: Tìm hoặc tạo khách hàng dựa trên email
+        const existingCustomer = await client.query(
+          'SELECT id FROM customers WHERE email = $1 FOR UPDATE',
+          [data.email]
+        );
+        if (existingCustomer.rows.length > 0) {
+          customer = await CustomerService.updateCustomer(existingCustomer.rows[0].id, {
+            first_name: data.first_name,
+            last_name: data.last_name,
+            phone_number: data.phone_number,
+            identity_number: data.identity_number,
+            email: data.email
+          });
+        } else {
+          customer = await CustomerService.createCustomer({
+            first_name: data.first_name,
+            last_name: data.last_name,
+            phone_number: data.phone_number,
+            identity_number: data.identity_number,
+            email: data.email
+          });
+        }
+      }
+
+      // Gọi bookTicket với customer_id
+      const ticketData = {
+        flight_id: data.flight_id,
+        customer_id: customer.id,
+        ticket_class_id: data.ticket_class_id,
+        cancellation_deadline: data.cancellation_deadline
+      };
+      const ticket = await this.bookTicket(ticketData);
+
+      await client.query('COMMIT');
+
+      return {
+        ticket,
+        customer: {
+          id: customer.id,
+          email: customer.email,
+          first_name: customer.first_name,
+          last_name: customer.last_name
+        }
+      };
+    } catch (error) {
+      await client.query('ROLLBACK');
+      throw error;
+    } finally {
+      client.release();
+    }
+  }
+
   async cancelTicket(ticket_id) {
     const client = await db.connect();
 
@@ -112,6 +188,20 @@ class TicketService {
         [ticket_id]
       );
 
+      // 5. Tăng số ghế khả dụng cho chuyến bay
+      const seatColumn = {
+        1: 'available_first_class_seats',
+        2: 'available_business_class_seats',
+        3: 'available_economy_class_seats'
+      }[ticket.ticket_class_id];
+
+      await client.query(
+        `
+        UPDATE flights SET ${seatColumn} = ${seatColumn} + 1 WHERE id = $1;
+        `,
+        [ticket.flight_id]
+      );
+
       await client.query('COMMIT');
 
       return new Ticket(cancelRes.rows[0]);
@@ -129,4 +219,4 @@ class TicketService {
   }
 }
 
-module.exports = TicketService;
+module.exports = new TicketService();

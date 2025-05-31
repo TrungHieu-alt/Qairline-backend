@@ -4,9 +4,6 @@ CREATE TABLE tickets (
     flight_id UUID NOT NULL,
     customer_id UUID, -- Bỏ NOT NULL để hỗ trợ vé guest
     ticket_class_id UUID NOT NULL,
-    guest_name  TEXT,
-    guest_email TEXT,
-    guest_phone TEXT,
     seat_number TEXT,
     price DECIMAL(10, 2) NOT NULL,
     booking_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,

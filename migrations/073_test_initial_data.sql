@@ -1,4 +1,4 @@
--- +goose Up
+/*
 
 -- Airlines
 INSERT INTO airlines (id, name, code) VALUES
@@ -58,3 +58,4 @@ DELETE FROM aircrafts;
 DELETE FROM routes;
 DELETE FROM airports;
 DELETE FROM airlines;
+*/

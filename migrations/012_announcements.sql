@@ -12,5 +12,7 @@ CREATE TABLE announcements (
 );
 CREATE INDEX idx_announcement_type ON announcements(type);
 
+
+
 -- +goose Down
 DROP TABLE announcements;

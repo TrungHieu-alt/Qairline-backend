@@ -8,6 +8,7 @@ CREATE TABLE customers (
     identity_number TEXT UNIQUE,
     phone_number TEXT,
     email TEXT UNIQUE NOT NULL,
+    password_hash TEXT NOT NULL,
     address TEXT,
     country TEXT,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP

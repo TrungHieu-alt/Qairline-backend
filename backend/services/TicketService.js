@@ -1,17 +1,28 @@
 const Ticket = require('../models/Ticket');
 const CustomerService = require('./CustomerService');
 const db = require('../config/db');
-const { hasAvailableSeats } = require('../utils/serviceUtils');
+const {
+  hasAvailableSeats,
+  seatColumnByClass,
+  basePriceFieldByClass
+} = require('../utils/serviceUtils');
 
 class TicketService {
+ 
   async bookTicket(data, quantity = 1) {
-    const { flight_id, customer_id, ticket_class_id, cancellation_deadline, seat_number } = data;
-    const client = await db.connect();
+    const {
+      flight_id,
+      customer_id,
+      ticket_class_id,
+      cancellation_deadline,
+      seat_number
+    } = data;
 
+    const client = await db.connect();
     try {
       await client.query('BEGIN');
 
-      // 1. Lấy chuyến bay và khóa bản ghi
+      /* 1. Lock chuyến bay */
       const flightRes = await client.query(
         'SELECT * FROM flights WHERE id = $1 FOR UPDATE',
         [flight_id]
@@ -19,20 +30,21 @@ class TicketService {
       if (flightRes.rows.length === 0) throw new Error('Flight not found');
       const flight = flightRes.rows[0];
 
-      // 2. Lấy hạng vé
+      /* 2. Lấy thông tin hạng vé */
       const classRes = await client.query(
         'SELECT * FROM ticket_classes WHERE id = $1',
         [ticket_class_id]
       );
       if (classRes.rows.length === 0) throw new Error('Ticket class not found');
       const ticketClass = classRes.rows[0];
+      const className   = ticketClass.class_name;
 
-      // 3. Kiểm tra đủ chỗ
-      if (!hasAvailableSeats(flight, ticket_class_id, quantity)) {
+      /* 3. Kiểm tra đủ ghế */
+      if (!hasAvailableSeats(flight, className, quantity)) {
         throw new Error('Not enough available seats');
       }
 
-      // 4. Kiểm tra ghế đã được đặt chưa (nếu có)
+      /* 4. Ghế cụ thể đã được đặt chưa? */
       if (seat_number) {
         const seatCheck = await client.query(
           'SELECT 1 FROM tickets WHERE flight_id = $1 AND seat_number = $2',
@@ -41,43 +53,41 @@ class TicketService {
         if (seatCheck.rows.length > 0) throw new Error('Seat already taken');
       }
 
-      // 5. Tính giá
-      const basePrice = {
-        1: flight.base_first_class_price,
-        2: flight.base_business_class_price,
-        3: flight.base_economy_class_price
-      }[ticket_class_id];
-      const price = basePrice * ticketClass.coefficient;
+      /* 5. Tính giá */
+      const basePriceField = basePriceFieldByClass(className);
+      const price          = flight[basePriceField] * ticketClass.coefficient;
 
-      // 6. Trừ ghế
-      const seatColumn = {
-        1: 'available_first_class_seats',
-        2: 'available_business_class_seats',
-        3: 'available_economy_class_seats'
-      }[ticket_class_id];
+      /* 6. Trừ ghế còn trống */
+      const seatColumn = seatColumnByClass(className);
       await client.query(
         `UPDATE flights SET ${seatColumn} = ${seatColumn} - $1 WHERE id = $2`,
         [quantity, flight_id]
       );
 
-      // 7. Tạo vé
+      /* 7. Tạo vé */
       const ticketRes = await client.query(
-        `
-        INSERT INTO tickets (
-          flight_id, customer_id, ticket_class_id,
-          seat_number, price, booking_date, ticket_status, ticket_code, cancellation_deadline
-        )
-        VALUES ($1, $2, $3, $4, $5, NOW(), 'PendingPayment', gen_random_uuid(), $6)
-        RETURNING *;
-        `,
-        [flight_id, customer_id, ticket_class_id, seat_number || null, price, cancellation_deadline]
+        `INSERT INTO tickets (
+            flight_id, customer_id, ticket_class_id,
+            seat_number, price, booking_date,
+            ticket_status, ticket_code, cancellation_deadline
+         )
+         VALUES ($1,$2,$3,$4,$5,NOW(),'PendingPayment',gen_random_uuid(),$6)
+         RETURNING *`,
+        [
+          flight_id,
+          customer_id,
+          ticket_class_id,
+          seat_number || null,
+          price,
+          cancellation_deadline
+        ]
       );
 
       await client.query('COMMIT');
       return new Ticket(ticketRes.rows[0]);
-    } catch (error) {
+    } catch (err) {
       await client.query('ROLLBACK');
-      throw error;
+      throw err;
     } finally {
       client.release();
     }
@@ -85,44 +95,51 @@ class TicketService {
 
   async bookTicketWithCustomer(data, user = null) {
     const { passengers, flight_id, ticket_class_id, cancellation_deadline } = data;
-    if (!passengers || !Array.isArray(passengers) || passengers.length === 0) {
-      throw new Error('Passenger list is required');
-    }
-    if (!flight_id || !ticket_class_id || !cancellation_deadline) {
-      throw new Error('Flight ID, ticket class ID, and cancellation deadline are required');
-    }
+    if (!passengers?.length) throw new Error('Passenger list is required');
 
     const client = await db.connect();
     try {
       await client.query('BEGIN');
-      const tickets = [];
 
-      // Kiểm tra số ghế khả dụng cho toàn bộ hành khách
-      const flightRes = await client.query('SELECT * FROM flights WHERE id = $1 FOR UPDATE', [flight_id]);
+      /* Tra hạng vé + tên hạng trước */
+      const classRes = await client.query(
+        'SELECT * FROM ticket_classes WHERE id = $1',
+        [ticket_class_id]
+      );
+      if (classRes.rows.length === 0) throw new Error('Ticket class not found');
+      const ticketClass = classRes.rows[0];
+      const className   = ticketClass.class_name;
+
+      /* Lock flight + kiểm tra tổng ghế */
+      const flightRes = await client.query(
+        'SELECT * FROM flights WHERE id = $1 FOR UPDATE',
+        [flight_id]
+      );
       if (flightRes.rows.length === 0) throw new Error('Flight not found');
-      if (!hasAvailableSeats(flightRes.rows[0], ticket_class_id, passengers.length)) {
+      if (!hasAvailableSeats(flightRes.rows[0], className, passengers.length)) {
         throw new Error('Not enough available seats for all passengers');
       }
 
-      for (const passenger of passengers) {
-        const { email, first_name, last_name, phone_number, identity_number, seat_number } = passenger;
+      const tickets = [];
+      for (const p of passengers) {
+        const { email, first_name, last_name, phone_number, identity_number, seat_number } = p;
         if (!email || !first_name || !last_name || !phone_number || !identity_number) {
-          throw new Error('Email, first name, last name, phone number, and identity number are required for each passenger');
+          throw new Error('Incomplete passenger data');
         }
 
-        // Tìm hoặc tạo khách hàng
+        /* Tìm hoặc tạo khách */
         let customer;
-        if (user && user.id && user.email === email) {
+        if (user?.id && user.email === email) {
           customer = await CustomerService.updateCustomer(user.id, {
             first_name, last_name, phone_number, identity_number, email
           });
         } else {
-          const existingCustomer = await client.query(
+          const exist = await client.query(
             'SELECT id FROM customers WHERE email = $1 FOR UPDATE',
             [email]
           );
-          if (existingCustomer.rows.length > 0) {
-            customer = await CustomerService.updateCustomer(existingCustomer.rows[0].id, {
+          if (exist.rows.length) {
+            customer = await CustomerService.updateCustomer(exist.rows[0].id, {
               first_name, last_name, phone_number, identity_number, email
             });
           } else {
@@ -132,23 +149,23 @@ class TicketService {
           }
         }
 
-        // Đặt vé cho hành khách
-        const ticketData = {
+        /* Book vé cho từng khách */
+        const ticket = await this.bookTicket({
           flight_id,
           customer_id: customer.id,
           ticket_class_id,
           cancellation_deadline,
           seat_number
-        };
-        const ticket = await this.bookTicket(ticketData, 1);
+        }, 1);
+
         tickets.push({ ticket, customer: { id: customer.id, email, first_name, last_name } });
       }
 
       await client.query('COMMIT');
       return tickets;
-    } catch (error) {
+    } catch (err) {
       await client.query('ROLLBACK');
-      throw error;
+      throw err;
     } finally {
       client.release();
     }
@@ -159,47 +176,44 @@ class TicketService {
     try {
       await client.query('BEGIN');
 
-      // Lấy vé và khóa bản ghi
+      // Lock vé + email
       const ticketRes = await client.query(
-        'SELECT t.*, c.email FROM tickets t JOIN customers c ON t.customer_id = c.id WHERE t.id = $1 FOR UPDATE',
+        `SELECT t.*, c.email
+           FROM tickets t
+           JOIN customers c ON t.customer_id = c.id
+          WHERE t.id = $1
+          FOR UPDATE`,
         [ticket_id]
       );
-      if (ticketRes.rows.length === 0) throw new Error('Ticket not found');
+      if (!ticketRes.rows.length) throw new Error('Ticket not found');
       const ticket = ticketRes.rows[0];
-
-      // Kiểm tra email (nếu có)
       if (email && ticket.email !== email) throw new Error('Email does not match ticket owner');
-
-      // Kiểm tra đã hủy chưa
       if (ticket.ticket_status === 'Cancelled') throw new Error('Ticket already cancelled');
+      if (new Date() > new Date(ticket.cancellation_deadline)) throw new Error('Cancellation deadline has passed');
 
-      // Kiểm tra hạn hủy
-      const now = new Date();
-      const deadline = new Date(ticket.cancellation_deadline);
-      if (now > deadline) throw new Error('Cancellation deadline has passed');
+      /* Lấy className → cột ghế */
+      const classNameRes = await client.query(
+        'SELECT class_name FROM ticket_classes WHERE id = $1',
+        [ticket.ticket_class_id]
+      );
+      const className  = classNameRes.rows[0].class_name;
+      const seatColumn = seatColumnByClass(className);
 
-      // Hủy vé
+      /* Đánh dấu huỷ & trả ghế */
       const cancelRes = await client.query(
-        `UPDATE tickets SET ticket_status = 'Cancelled' WHERE id = $1 RETURNING *`,
+        `UPDATE tickets SET ticket_status='Cancelled' WHERE id=$1 RETURNING *`,
         [ticket_id]
       );
-
-      // Tăng số ghế khả dụng
-      const seatColumn = {
-        1: 'available_first_class_seats',
-        2: 'available_business_class_seats',
-        3: 'available_economy_class_seats'
-      }[ticket.ticket_class_id];
       await client.query(
-        `UPDATE flights SET ${seatColumn} = ${seatColumn} + 1 WHERE id = $1`,
+        `UPDATE flights SET ${seatColumn} = ${seatColumn} + 1 WHERE id=$1`,
         [ticket.flight_id]
       );
 
       await client.query('COMMIT');
       return new Ticket(cancelRes.rows[0]);
-    } catch (error) {
+    } catch (err) {
       await client.query('ROLLBACK');
-      throw error;
+      throw err;
     } finally {
       client.release();
     }

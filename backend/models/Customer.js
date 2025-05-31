@@ -10,7 +10,8 @@ class Customer {
     email,
     address,
     country,
-    created_at
+    created_at,
+    password_hash
   }) {
     this.id = id;
     this.first_name = first_name;
@@ -23,6 +24,7 @@ class Customer {
     this.address = address;
     this.country = country;
     this.created_at = created_at;
+    this.password_hash = password_hash; 
   }
 }
 module.exports = Customer;

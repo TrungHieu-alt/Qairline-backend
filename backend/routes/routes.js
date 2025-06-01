@@ -59,10 +59,10 @@ router.put('/announcements/:id', authenticate, authorize(['admin']), validateUpd
 router.delete('/announcements/:id', authenticate, authorize(['admin']), validateDeleteAnnouncement, handleValidationErrors, AnnouncementController.delete);
 router.get('/tickets/stats', authenticate, authorize(['admin']), validateTicketStats, handleValidationErrors, TicketController.getTicketStats);
 
-router.get('/stats', StatisticController.getStats);
-router.get('/recent-bookings', StatisticController.getRecentBookings);
-router.get('/upcoming-flights', StatisticController.getUpcomingFlights);
-router.get('/booking-trends', StatisticController.getBookingTrends);
+router.get('/stats', authenticate, authorize(['admin']), StatisticController.getStats);
+router.get('/recent-bookings', authenticate, authorize(['admin']), StatisticController.getRecentBookings);
+router.get('/upcoming-flights',authenticate, authorize(['admin']),  StatisticController.getUpcomingFlights);
+router.get('/booking-trends',authenticate, authorize(['admin']),  StatisticController.getBookingTrends);
 // Logout routes
 router.post('/employee/logout', authenticate, EmployeeAuthController.logout);
 router.post('/customer/logout', authenticate, CustomerAuthController.logout);

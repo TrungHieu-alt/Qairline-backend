@@ -1,7 +1,5 @@
 const Aircraft = require('../models/Aircraft');
 const db = require('../config/db');
-const bcrypt = require('bcrypt');
-bcrypt.hash('123456', 10).then(console.log);
 
 class AircraftService {
   async createAircraft(data, user) {

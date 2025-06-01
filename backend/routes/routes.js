@@ -17,6 +17,7 @@ const { validateCreateAnnouncement, validateUpdateAnnouncement, validateDeleteAn
 const { validateCreateAircraft, validateUpdateAircraft, validateGetAircraftById } = require('../middlewares/validateAircraft');
 const { validateCreateTicketClass, validateUpdateTicketClass, validateGetPerks } = require('../middlewares/validateTicketClass');
 
+const StatisticController = require('../controllers/statisticController');
 const EmployeeAuthController = require('../controllers/employeeAuthController');
 const CustomerController = require('../controllers/customerController');
 const FlightController = require('../controllers/flightController');
@@ -58,6 +59,10 @@ router.put('/announcements/:id', authenticate, authorize(['admin']), validateUpd
 router.delete('/announcements/:id', authenticate, authorize(['admin']), validateDeleteAnnouncement, handleValidationErrors, AnnouncementController.delete);
 router.get('/tickets/stats', authenticate, authorize(['admin']), validateTicketStats, handleValidationErrors, TicketController.getTicketStats);
 
+router.get('/stats', StatisticController.getStats);
+router.get('/recent-bookings', StatisticController.getRecentBookings);
+router.get('/upcoming-flights', StatisticController.getUpcomingFlights);
+router.get('/booking-trends', StatisticController.getBookingTrends);
 // Logout routes
 router.post('/employee/logout', authenticate, EmployeeAuthController.logout);
 router.post('/customer/logout', authenticate, CustomerAuthController.logout);

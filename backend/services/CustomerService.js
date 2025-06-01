@@ -2,6 +2,11 @@ const Customer = require('../models/Customer');
 const db = require('../config/db');
 
 class CustomerService {
+    /**
+   * Tạo khách hàng mới.
+   * @param {Object} data - Thông tin khách hàng (first_name, last_name, birth_date, …).
+   * @returns {Promise<Customer>} Khách hàng vừa được tạo.
+   */
   async createCustomer(data) {
     const query = `
       INSERT INTO customers (first_name, last_name, birth_date, gender, identity_number, phone_number, email, address, country, created_at)

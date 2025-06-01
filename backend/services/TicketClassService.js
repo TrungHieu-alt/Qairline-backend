@@ -3,11 +3,18 @@ const Perk = require('../models/Perk');
 const db = require('../config/db');
 
 class TicketClassService {
+  /** Lấy danh sách hạng vé. */
   async getAll() {
     const result = await db.query('SELECT * FROM ticket_classes');
     return result.rows.map(row => new TicketClass(row));
   }
 
+
+   /**
+   * Lấy đặc quyền của 1 hạng vé.
+   * @param {number} ticketClassId
+   * @returns {Promise<Perk[]>}
+   */
   async getPerksForTicketClass(ticketClassId) {
     const query = `
       SELECT p.* FROM perks p
@@ -18,6 +25,8 @@ class TicketClassService {
     return result.rows.map(row => new Perk(row));
   }
 
+
+  /** Tạo hạng vé mới. */
   async create(data) {
     const client = await db.connect();
     try {
@@ -41,6 +50,8 @@ class TicketClassService {
     }
   }
 
+
+  /** Cập nhật hạng vé. */
   async update(id, data) {
     const client = await db.connect();
     try {

@@ -2,8 +2,12 @@ const Aircraft = require('../models/Aircraft');
 const db = require('../config/db');
 
 class AircraftService {
-  async createAircraft(data, user) {
-    if (!user || user.role !== 'admin') throw new Error('Only admins can create aircrafts');
+
+    /**
+   * Tạo máy bay mới (chỉ Admin).
+   * @param {Object} data
+   */
+  async createAircraft(data) {
     const query = `
       INSERT INTO aircrafts (
         airline_id, aircraft_type, total_first_class_seats,
@@ -27,8 +31,8 @@ class AircraftService {
     return new Aircraft(result.rows[0]);
   }
 
-  async updateAircraft(id, data, user) {
-    if (!user || user.role !== 'admin') throw new Error('Only admins can update aircrafts');
+  /** Cập nhật máy bay (chỉ Admin). */
+  async updateAircraft(id, data) {
     const client = await db.connect();
     try {
       await client.query('BEGIN');
@@ -63,11 +67,13 @@ class AircraftService {
     }
   }
 
+   /** Lấy toàn bộ máy bay. */
   async getAllAircrafts() {
     const result = await db.query('SELECT * FROM aircrafts');
     return result.rows.map(row => new Aircraft(row));
   }
 
+  /** Lấy máy bay theo ID. */
   async getAircraftById(id) {
     const result = await db.query('SELECT * FROM aircrafts WHERE id = $1', [id]);
     return result.rows.length > 0 ? new Aircraft(result.rows[0]) : null;

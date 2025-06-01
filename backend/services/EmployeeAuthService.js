@@ -4,6 +4,13 @@ const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
 
 class AuthService {
+
+    /**
+   * Đăng nhập nhân viên.
+   * @param {string} email
+   * @param {string} password
+   * @returns {Promise<{token: string, employee: Employee}>}
+   */
   async login(email, password) {
     if (!email || !password) {
       throw new Error('Email and password are required');

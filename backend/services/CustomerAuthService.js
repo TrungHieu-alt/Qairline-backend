@@ -4,6 +4,13 @@ const jwt = require('jsonwebtoken');
 const db = require('../config/db');
 
 class CustomerAuthService {
+    /**
+   * Đăng nhập khách hàng.
+   * @param {string} email
+   * @param {string} password
+   * @returns {Promise<{token: string, user: Object}>}
+   * @throws Khi email không tồn tại hoặc mật khẩu sai.
+   */
   async login(email, password) {
     if (!email || !password) {
       throw new Error('Email and password are required');
@@ -35,6 +42,12 @@ class CustomerAuthService {
     return { token, user: { id: user.id, email: user.email, first_name: user.first_name, last_name: user.last_name } };
   }
 
+
+  /**
+   * Đăng ký tài khoản khách hàng mới.
+   * @param {Object} param0 - email, password, first_name, last_name.
+   * @returns {Promise<{token: string, user: Object}>}
+   */
   async register({ email, password, first_name, last_name }) {
     if (!email || !password || !first_name) {
       throw new Error('Email, password, and first name are required');
@@ -81,6 +94,12 @@ class CustomerAuthService {
     };
   }
 
+
+  /**
+   * Liên kết tài khoản (khi email đã tồn tại nhưng chưa có mật khẩu).
+   * @param {Object} param0 - email, password, first_name, last_name.
+   * @returns {Promise<{token: string, user: Object}>}
+   */
   async linkAccount({ email, password, first_name, last_name }) {
     if (!email || !password || !first_name) {
       throw new Error('Email, password, and first name are required');

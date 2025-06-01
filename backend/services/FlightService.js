@@ -5,17 +5,29 @@ const db = require('../config/db'); // PostgreSQL pool connection
 const { hasAvailableSeats } = require('../utils/serviceUtils');
 
 class FlightService {
+   /** Lấy toàn bộ chuyến bay, sắp xếp theo giờ khởi hành tăng dần. */
   async getAllFlights() {
     const result = await db.query('SELECT * FROM flights ORDER BY departure_time ASC');
     return result.rows.map(row => new Flight(row));
   }
 
+  /**
+   * Lấy chi tiết chuyến bay.
+   * @param {number} id - ID chuyến bay.
+   * @returns {Promise<Flight|null>}
+   */
   async getFlightById(id) {
     const result = await db.query('SELECT * FROM flights WHERE id = $1', [id]);
     if (result.rows.length === 0) return null;
     return new Flight(result.rows[0]);
   }
 
+
+    /**
+   * Tìm chuyến bay theo chặng và ngày.
+   * @param {Object} param0 - from_airport_id, to_airport_id, date (YYYY-MM-DD).
+   * @returns {Promise<Array>} Danh sách chuyến bay khớp.
+   */
   async searchFlights({ from_airport_id, to_airport_id, date }) {
     const query = `
       SELECT
@@ -44,6 +56,17 @@ class FlightService {
     }));
   }
 
+
+   /**
+   * Trì hoãn chuyến bay, đồng thời:
+   * 1. Cập nhật bảng flights.
+   * 2. Cập nhật deadline huỷ vé.
+   * 3. Tạo thông báo Delay.
+   * @param {number} flightId
+   * @param {Date} newDeparture
+   * @param {Date} newArrival
+   * @param {number} createdBy - ID nhân viên thực hiện.
+   */
   async delayFlight(flightId, newDeparture, newArrival, createdBy) {
     const client = await db.connect();
     try {
@@ -111,6 +134,12 @@ class FlightService {
     }
   }
 
+
+   /**
+   * Tạo chuyến bay mới.
+   * @param {Object} data - Thông tin chuyến bay.
+   * @returns {Promise<Flight>}
+   */
   async createFlight(data) {
     const client = await db.connect();
     try {

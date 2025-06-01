@@ -9,6 +9,13 @@ const {
 
 class TicketService {
  
+
+   /**
+   * Book 1 vé đơn lẻ (hàm nội bộ, khoá chuyến bay & trừ ghế).
+   * @param {Object} data
+   * @param {number} quantity - Số ghế (mặc định 1).
+   * @returns {Promise<Ticket>}
+   */
   async bookTicket(data, quantity = 1) {
     const {
       flight_id,
@@ -93,6 +100,13 @@ class TicketService {
     }
   }
 
+
+   /**
+   * Book nhiều vé cho danh sách hành khách, tự tạo hoặc cập nhật khách.
+   * @param {Object} data - passengers[], flight_id, ticket_class_id, cancellation_deadline.
+   * @param {Object|null} user - Người dùng đã đăng nhập (nếu có).
+   * @returns {Promise<Array<{ticket: Ticket, customer: Object}>>}
+   */
   async bookTicketWithCustomer(data, user = null) {
     const { passengers, flight_id, ticket_class_id, cancellation_deadline } = data;
     if (!passengers?.length) throw new Error('Passenger list is required');
@@ -171,6 +185,7 @@ class TicketService {
     }
   }
 
+  /** Huỷ vé (kiểm tra deadline & hoàn ghế). */
   async cancelTicket(ticket_id, email = null) {
     const client = await db.connect();
     try {
@@ -219,6 +234,8 @@ class TicketService {
     }
   }
 
+
+  /** Xác nhận vé từ PendingPayment → Confirmed. */
   async confirmTicket(ticket_id) {
     const client = await db.connect();
     try {
@@ -238,11 +255,13 @@ class TicketService {
     }
   }
 
+  /** Tìm vé theo ticket_code (UUID). */
   async getTicketByCode(ticket_code) {
     const result = await db.query('SELECT * FROM tickets WHERE ticket_code = $1', [ticket_code]);
     return result.rows.length > 0 ? new Ticket(result.rows[0]) : null;
   }
 
+  /** Lấy toàn bộ vé của 1 email khách hàng, kèm thông tin chuyến bay. */
   async getTicketsByEmail(email) {
     const result = await db.query(
       `
@@ -281,6 +300,12 @@ class TicketService {
     }));
   }
 
+
+    /**
+   * Thống kê vé theo điều kiện.
+   * @param {Object} filters - flight_id, start_date, end_date, ticket_status.
+   * @returns {Promise<Object>} Số vé & doanh thu.
+   */
   async getTicketStats({ flight_id, start_date, end_date, ticket_status }) {
     let query = `
       SELECT 

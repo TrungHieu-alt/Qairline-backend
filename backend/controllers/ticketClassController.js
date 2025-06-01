@@ -36,3 +36,12 @@ exports.update = async (req, res) => {
     res.status(400).json({ success: false, message: err.message });
   }
 };
+
+exports.delete = async (req, res) => {
+  try {
+    const result = await ticketClassService.deleteTicketClass(req.params.id);
+    res.json({ success: true, data: result });
+  } catch (err) {
+    res.status(400).json({ success: false, message: err.message });
+  }
+};

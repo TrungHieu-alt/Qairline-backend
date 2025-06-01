@@ -178,6 +178,78 @@ class FlightService {
       client.release();
     }
   }
+  /**
+ * Hủy chuyến bay: đổi flight_status → 'Cancelled' + hủy vé còn hiệu lực
+ * + Tuỳ chọn ghi announcement cho hành khách.
+ * @param {number} flightId
+ * @param {Object} [opts]
+ * @param {string} [opts.reason]      – Nội dung thông báo (có thể rỗng)
+ * @param {number} [opts.employeeId]  – ID nhân viên tạo announcement (nullable)
+ * @returns {Promise<Flight>}
+ */
+async cancelFlight(flightId, opts = {}) {
+  const { reason = '', employeeId = null } = opts;
+  const client = await db.connect();
+  try {
+    await client.query('BEGIN');
+
+    // 1. Đổi trạng thái chuyến bay
+    const flightRes = await client.query(
+      `UPDATE flights
+         SET flight_status = 'Cancelled'
+       WHERE id = $1
+       RETURNING *`,
+      [flightId]
+    );
+    if (flightRes.rows.length === 0) throw new Error('Flight not found');
+
+    // 2. Hủy toàn bộ vé chưa bị huỷ
+    await client.query(
+      `UPDATE tickets
+         SET ticket_status = 'Cancelled'
+       WHERE flight_id = $1
+         AND ticket_status <> 'Cancelled'`,
+      [flightId]
+    );
+
+    // 3. Ghi announcement (không bắt buộc)
+    if (employeeId) {
+      await client.query(
+        `INSERT INTO announcements
+           (title, content, type, published_date, created_by)
+         VALUES ($1, $2, 'Cancel', NOW(), $3)`,
+        [`Chuyến bay ${flightRes.rows[0].flight_number} bị huỷ`, reason, employeeId]
+      );
+    }
+
+    await client.query('COMMIT');
+    return new Flight(flightRes.rows[0]);
+  } catch (err) {
+    await client.query('ROLLBACK');
+    throw err;
+  } finally {
+    client.release();
+  }
 }
+
+/**
+ * Xoá cứng chuyến bay – CHỈ khi chưa có vé.
+ * @param {number} id
+ * @returns {Promise<{deleted: true}>}
+ */
+async deleteFlight(id) {
+  const ref = await db.query(
+    'SELECT 1 FROM tickets WHERE flight_id = $1 LIMIT 1',
+    [id]
+  );
+  if (ref.rows.length) {
+    throw new Error('Cannot delete: flight already has tickets');
+  }
+  await db.query('DELETE FROM flights WHERE id = $1', [id]);
+  return { deleted: true };
+}
+}
+
+
 
 module.exports = FlightService;

@@ -79,6 +79,23 @@ class TicketClassService {
       client.release();
     }
   }
+
+  /**
+ * Xoá hạng vé (hard-delete) – chỉ khi chưa có vé tham chiếu.
+ * @param {number} id
+ * @returns {Promise<{deleted: true}>}
+ */
+async deleteTicketClass(id) {
+  const ref = await db.query(
+    'SELECT 1 FROM tickets WHERE ticket_class_id = $1 LIMIT 1',
+    [id]
+  );
+  if (ref.rows.length) {
+    throw new Error('Cannot delete: ticket class is in use');
+  }
+  await db.query('DELETE FROM ticket_classes WHERE id = $1', [id]);
+  return { deleted: true };
+}
 }
 
 module.exports = TicketClassService;

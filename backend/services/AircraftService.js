@@ -78,6 +78,25 @@ class AircraftService {
     const result = await db.query('SELECT * FROM aircrafts WHERE id = $1', [id]);
     return result.rows.length > 0 ? new Aircraft(result.rows[0]) : null;
   }
+  
+  /**
+ * Xoá máy bay.
+ * – Nếu máy bay đã gán cho chuyến bay, từ chối xoá.
+ * @param {number} id
+ * @returns {Promise<{deleted: true}>}
+ */
+async deleteAircraft(id) {
+  const ref = await db.query(
+    'SELECT 1 FROM flights WHERE aircraft_id = $1 LIMIT 1',
+    [id]
+  );
+  if (ref.rows.length) {
+    throw new Error('Cannot delete: aircraft still assigned to flights');
+  }
+  await db.query('DELETE FROM aircrafts WHERE id = $1', [id]);
+  return { deleted: true };
+}
+
 }
 
 module.exports = new AircraftService();

@@ -44,8 +44,8 @@ INSERT INTO tickets (
 (
     (SELECT id FROM flights WHERE flight_number = 'QA101'),
     NULL,
+    (SELECT id FROM ticket_classes WHERE class_name = 'Economy'),
     '12A',
-    (SELECT id FROM ticket_classes WHERE class_name = 'Economy Class'),
     110.00,
     CURRENT_TIMESTAMP,
     'Confirmed',
@@ -59,7 +59,7 @@ INSERT INTO tickets (
 (
     (SELECT id FROM flights WHERE flight_number = 'QA102'),
     NULL,
-    (SELECT id FROM ticket_classes WHERE class_name = 'Business Class'),
+    (SELECT id FROM ticket_classes WHERE class_name = 'Business'),
     '03C',
     195.00,
     CURRENT_TIMESTAMP,
@@ -74,7 +74,7 @@ INSERT INTO tickets (
 (
     (SELECT id FROM flights WHERE flight_number = 'QA201'),
     NULL,
-    (SELECT id FROM ticket_classes WHERE class_name = 'First Class'),
+    (SELECT id FROM ticket_classes WHERE class_name = 'First'),
     '01B',
     420.00,
     CURRENT_TIMESTAMP,
@@ -89,7 +89,7 @@ INSERT INTO tickets (
 (
     (SELECT id FROM flights WHERE flight_number = 'QA301'),
     NULL,
-    (SELECT id FROM ticket_classes WHERE class_name = 'Economy Class'),
+    (SELECT id FROM ticket_classes WHERE class_name = 'Economy'),
     '20F',
     75.00,
     CURRENT_TIMESTAMP,
@@ -104,7 +104,7 @@ INSERT INTO tickets (
 (
     (SELECT id FROM flights WHERE flight_number = 'QA401'),
     NULL,
-    (SELECT id FROM ticket_classes WHERE class_name = 'Business Class'),
+    (SELECT id FROM ticket_classes WHERE class_name = 'Business'),
     '07A',
     400.00,
     CURRENT_TIMESTAMP,

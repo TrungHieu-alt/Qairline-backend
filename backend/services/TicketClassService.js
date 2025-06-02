@@ -3,11 +3,18 @@ const Perk = require('../models/Perk');
 const db = require('../config/db');
 
 class TicketClassService {
+  /** Lấy danh sách hạng vé. */
   async getAll() {
     const result = await db.query('SELECT * FROM ticket_classes');
     return result.rows.map(row => new TicketClass(row));
   }
 
+
+   /**
+   * Lấy đặc quyền của 1 hạng vé.
+   * @param {number} ticketClassId
+   * @returns {Promise<Perk[]>}
+   */
   async getPerksForTicketClass(ticketClassId) {
     const query = `
       SELECT p.* FROM perks p
@@ -18,6 +25,8 @@ class TicketClassService {
     return result.rows.map(row => new Perk(row));
   }
 
+
+  /** Tạo hạng vé mới. */
   async create(data) {
     const client = await db.connect();
     try {
@@ -41,6 +50,8 @@ class TicketClassService {
     }
   }
 
+
+  /** Cập nhật hạng vé. */
   async update(id, data) {
     const client = await db.connect();
     try {
@@ -68,6 +79,23 @@ class TicketClassService {
       client.release();
     }
   }
+
+  /**
+ * Xoá hạng vé (hard-delete) – chỉ khi chưa có vé tham chiếu.
+ * @param {number} id
+ * @returns {Promise<{deleted: true}>}
+ */
+async deleteTicketClass(id) {
+  const ref = await db.query(
+    'SELECT 1 FROM tickets WHERE ticket_class_id = $1 LIMIT 1',
+    [id]
+  );
+  if (ref.rows.length) {
+    throw new Error('Cannot delete: ticket class is in use');
+  }
+  await db.query('DELETE FROM ticket_classes WHERE id = $1', [id]);
+  return { deleted: true };
+}
 }
 
 module.exports = TicketClassService;

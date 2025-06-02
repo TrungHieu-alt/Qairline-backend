@@ -36,3 +36,12 @@ exports.getAircraftById = async (req, res) => {
     res.status(400).json({ success: false, message: err.message });
   }
 };
+
+exports.deleteAircraft = async (req, res) => {
+  try {
+    const result = await AircraftService.deleteAircraft(req.params.id);
+    res.json({ success: true, data: result });
+  } catch (err) {
+    res.status(400).json({ success: false, message: err.message });
+  }
+};

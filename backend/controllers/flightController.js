@@ -32,3 +32,24 @@ exports.createFlight = async (req, res) => {
   const flight = await flightService.createFlight(req.body);
   res.status(201).json({ success: true, data: flight });
 };
+
+exports.cancelFlight = async (req, res) => {
+  try {
+    const flight = await flightService.cancelFlight(req.params.id, {
+      reason: req.body.reason || '',
+      employeeId: req.user?.id || null
+    });
+    res.json({ success: true, data: flight });
+  } catch (err) {
+    res.status(400).json({ success: false, message: err.message });
+  }
+};
+
+exports.deleteFlight = async (req, res) => {
+  try {
+    const result = await flightService.deleteFlight(req.params.id);
+    res.json({ success: true, data: result });
+  } catch (err) {
+    res.status(400).json({ success: false, message: err.message });
+  }
+};

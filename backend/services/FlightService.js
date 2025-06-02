@@ -5,17 +5,29 @@ const db = require('../config/db'); // PostgreSQL pool connection
 const { hasAvailableSeats } = require('../utils/serviceUtils');
 
 class FlightService {
+   /** Lấy toàn bộ chuyến bay, sắp xếp theo giờ khởi hành tăng dần. */
   async getAllFlights() {
     const result = await db.query('SELECT * FROM flights ORDER BY departure_time ASC');
     return result.rows.map(row => new Flight(row));
   }
 
+  /**
+   * Lấy chi tiết chuyến bay.
+   * @param {number} id - ID chuyến bay.
+   * @returns {Promise<Flight|null>}
+   */
   async getFlightById(id) {
     const result = await db.query('SELECT * FROM flights WHERE id = $1', [id]);
     if (result.rows.length === 0) return null;
     return new Flight(result.rows[0]);
   }
 
+
+    /**
+   * Tìm chuyến bay theo chặng và ngày.
+   * @param {Object} param0 - from_airport_id, to_airport_id, date (YYYY-MM-DD).
+   * @returns {Promise<Array>} Danh sách chuyến bay khớp.
+   */
   async searchFlights({ from_airport_id, to_airport_id, date }) {
     const query = `
       SELECT
@@ -44,6 +56,17 @@ class FlightService {
     }));
   }
 
+
+   /**
+   * Trì hoãn chuyến bay, đồng thời:
+   * 1. Cập nhật bảng flights.
+   * 2. Cập nhật deadline huỷ vé.
+   * 3. Tạo thông báo Delay.
+   * @param {number} flightId
+   * @param {Date} newDeparture
+   * @param {Date} newArrival
+   * @param {number} createdBy - ID nhân viên thực hiện.
+   */
   async delayFlight(flightId, newDeparture, newArrival, createdBy) {
     const client = await db.connect();
     try {
@@ -111,6 +134,12 @@ class FlightService {
     }
   }
 
+
+   /**
+   * Tạo chuyến bay mới.
+   * @param {Object} data - Thông tin chuyến bay.
+   * @returns {Promise<Flight>}
+   */
   async createFlight(data) {
     const client = await db.connect();
     try {
@@ -149,6 +178,78 @@ class FlightService {
       client.release();
     }
   }
+  /**
+ * Hủy chuyến bay: đổi flight_status → 'Cancelled' + hủy vé còn hiệu lực
+ * + Tuỳ chọn ghi announcement cho hành khách.
+ * @param {number} flightId
+ * @param {Object} [opts]
+ * @param {string} [opts.reason]      – Nội dung thông báo (có thể rỗng)
+ * @param {number} [opts.employeeId]  – ID nhân viên tạo announcement (nullable)
+ * @returns {Promise<Flight>}
+ */
+async cancelFlight(flightId, opts = {}) {
+  const { reason = '', employeeId = null } = opts;
+  const client = await db.connect();
+  try {
+    await client.query('BEGIN');
+
+    // 1. Đổi trạng thái chuyến bay
+    const flightRes = await client.query(
+      `UPDATE flights
+         SET flight_status = 'Cancelled'
+       WHERE id = $1
+       RETURNING *`,
+      [flightId]
+    );
+    if (flightRes.rows.length === 0) throw new Error('Flight not found');
+
+    // 2. Hủy toàn bộ vé chưa bị huỷ
+    await client.query(
+      `UPDATE tickets
+         SET ticket_status = 'Cancelled'
+       WHERE flight_id = $1
+         AND ticket_status <> 'Cancelled'`,
+      [flightId]
+    );
+
+    // 3. Ghi announcement (không bắt buộc)
+    if (employeeId) {
+      await client.query(
+        `INSERT INTO announcements
+           (title, content, type, published_date, created_by)
+         VALUES ($1, $2, 'Cancel', NOW(), $3)`,
+        [`Chuyến bay ${flightRes.rows[0].flight_number} bị huỷ`, reason, employeeId]
+      );
+    }
+
+    await client.query('COMMIT');
+    return new Flight(flightRes.rows[0]);
+  } catch (err) {
+    await client.query('ROLLBACK');
+    throw err;
+  } finally {
+    client.release();
+  }
 }
+
+/**
+ * Xoá cứng chuyến bay – CHỈ khi chưa có vé.
+ * @param {number} id
+ * @returns {Promise<{deleted: true}>}
+ */
+async deleteFlight(id) {
+  const ref = await db.query(
+    'SELECT 1 FROM tickets WHERE flight_id = $1 LIMIT 1',
+    [id]
+  );
+  if (ref.rows.length) {
+    throw new Error('Cannot delete: flight already has tickets');
+  }
+  await db.query('DELETE FROM flights WHERE id = $1', [id]);
+  return { deleted: true };
+}
+}
+
+
 
 module.exports = FlightService;

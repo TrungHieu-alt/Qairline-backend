@@ -2,11 +2,18 @@ const Announcement = require('../models/Announcement');
 const db = require('../config/db');
 
 class AnnouncementService {
+
+  /** Lấy danh sách thông báo còn hiệu lực. */
   async getAll() {
     const result = await db.query('SELECT * FROM announcements WHERE expiry_date > NOW() ORDER BY published_date DESC');
     return result.rows.map(row => new Announcement(row));
   }
 
+
+  /**
+   * Tạo thông báo mới.
+   * @param {Object} data - title, content, type, expiry_date, created_by.
+   */
   async create(data) {
     const query = `
       INSERT INTO announcements (title, content, type, published_date, expiry_date, created_by)
@@ -17,6 +24,8 @@ class AnnouncementService {
     return new Announcement(result.rows[0]);
   }
 
+
+  /** Cập nhật thông báo. */
   async update(id, data) {
     const client = await db.connect();
     try {
@@ -52,6 +61,7 @@ class AnnouncementService {
     }
   }
 
+  /** Xoá thông báo. */
   async delete(id) {
     const client = await db.connect();
     try {

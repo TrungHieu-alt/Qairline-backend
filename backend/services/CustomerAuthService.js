@@ -1,17 +1,10 @@
-console.log('✅ JWT_SECRET in CustomerAuthService:', process.env.JWT_SECRET);
 const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
 const db = require('../config/db');
 
 class CustomerAuthService {
-    /**
-   * Đăng nhập khách hàng.
-   * @param {string} email
-   * @param {string} password
-   * @returns {Promise<{token: string, user: Object}>}
-   * @throws Khi email không tồn tại hoặc mật khẩu sai.
-   */
   async login(email, password) {
+    console.log('📡 Đăng nhập khách hàng với email:', email); // Thêm log
     if (!email || !password) {
       throw new Error('Email and password are required');
     }
@@ -20,7 +13,7 @@ class CustomerAuthService {
     }
 
     const res = await db.query(
-      'SELECT id, email, password_hash, first_name, last_name FROM customers WHERE email = $1',
+      'SELECT id, email, password_hash, first_name, last_name, username FROM customers WHERE email = $1',
       [email]
     );
 
@@ -39,16 +32,20 @@ class CustomerAuthService {
       process.env.JWT_SECRET,
       { expiresIn: '24h' }
     );
-    return { token, user: { id: user.id, email: user.email, first_name: user.first_name, last_name: user.last_name } };
+    return {
+      token,
+      user: {
+        id: user.id,
+        email: user.email,
+        username: user.username,
+        first_name: user.first_name,
+        last_name: user.last_name
+      }
+    };
   }
 
-
-  /**
-   * Đăng ký tài khoản khách hàng mới.
-   * @param {Object} param0 - email, password, first_name, last_name.
-   * @returns {Promise<{token: string, user: Object}>}
-   */
-  async register({ email, password, first_name, last_name }) {
+  async register({ username, email, password, first_name, last_name }) {
+    console.log('📡 Đăng ký khách hàng với dữ liệu:', { username, email, first_name, last_name }); // Thêm log
     if (!email || !password || !first_name) {
       throw new Error('Email, password, and first name are required');
     }
@@ -65,8 +62,18 @@ class CustomerAuthService {
       if (existingUser.rows[0].password_hash) {
         throw new Error('Email already registered. Please log in or reset password.');
       }
-      // Nếu email tồn tại nhưng chưa có password_hash, liên kết tài khoản
-      return await this.linkAccount({ email, password, first_name, last_name });
+      return await this.linkAccount({ username, email, password, first_name, last_name });
+    }
+
+    // Kiểm tra username trùng lặp (nếu có)
+    if (username) {
+      const existingUsername = await db.query(
+        'SELECT id FROM customers WHERE username = $1',
+        [username]
+      );
+      if (existingUsername.rows.length > 0) {
+        throw new Error('Username already taken');
+      }
     }
 
     // Băm mật khẩu
@@ -75,8 +82,8 @@ class CustomerAuthService {
 
     // Chèn khách hàng với thông tin tối thiểu
     const result = await db.query(
-      'INSERT INTO customers (email, password_hash, first_name, last_name, created_at) VALUES ($1, $2, $3, $4, NOW()) RETURNING id, email, first_name, last_name',
-      [email, password_hash, first_name, last_name]
+      'INSERT INTO customers (username, email, password_hash, first_name, last_name, created_at) VALUES ($1, $2, $3, $4, $5, NOW()) RETURNING id, username, email, first_name, last_name',
+      [username || null, email, password_hash, first_name, last_name]
     );
 
     const user = result.rows[0];
@@ -90,22 +97,28 @@ class CustomerAuthService {
 
     return {
       token,
-      user: { id: user.id, email: user.email, first_name: user.first_name, last_name: user.last_name }
+      user: { id: user.id, username: user.username, email: user.email, first_name: user.first_name, last_name: user.last_name }
     };
   }
 
-
-  /**
-   * Liên kết tài khoản (khi email đã tồn tại nhưng chưa có mật khẩu).
-   * @param {Object} param0 - email, password, first_name, last_name.
-   * @returns {Promise<{token: string, user: Object}>}
-   */
-  async linkAccount({ email, password, first_name, last_name }) {
+  async linkAccount({ username, email, password, first_name, last_name }) {
+    console.log('📡 Liên kết tài khoản khách hàng với email:', email); // Thêm log
     if (!email || !password || !first_name) {
       throw new Error('Email, password, and first name are required');
     }
     if (!process.env.JWT_SECRET) {
       throw new Error('JWT_SECRET is not defined');
+    }
+
+    // Kiểm tra username trùng lặp (nếu có)
+    if (username) {
+      const existingUsername = await db.query(
+        'SELECT id FROM customers WHERE username = $1',
+        [username]
+      );
+      if (existingUsername.rows.length > 0) {
+        throw new Error('Username already taken');
+      }
     }
 
     // Băm mật khẩu
@@ -114,8 +127,8 @@ class CustomerAuthService {
 
     // Cập nhật password_hash và thông tin cho khách hàng hiện có
     const result = await db.query(
-      'UPDATE customers SET password_hash = $1, first_name = COALESCE($2, first_name), last_name = COALESCE($3, last_name) WHERE email = $4 RETURNING id, email, first_name, last_name',
-      [password_hash, first_name, last_name, email]
+      'UPDATE customers SET username = COALESCE($1, username), password_hash = $2, first_name = COALESCE($3, first_name), last_name = COALESCE($4, last_name) WHERE email = $5 RETURNING id, username, email, first_name, last_name',
+      [username || null, password_hash, first_name, last_name, email]
     );
 
     if (result.rows.length === 0) {
@@ -133,8 +146,9 @@ class CustomerAuthService {
 
     return {
       token,
-      user: { id: user.id, email: user.email, first_name: user.first_name, last_name: user.last_name }
+      user: { id: user.id, username: user.username, email: user.email, first_name: user.first_name, last_name: user.last_name }
     };
   }
 }
+
 module.exports = new CustomerAuthService();

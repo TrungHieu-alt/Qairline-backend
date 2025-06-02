@@ -5,14 +5,40 @@ const express   = require('express');
 const cors      = require('cors');
 const morgan    = require('morgan');
 const rateLimit = require('express-rate-limit');
+const { Pool } = require('pg');
 const helmet    = require('helmet');
 const router    = require('./routes/routes');
 
 const app = express();
 
+// Thiết lập kết nối PostgreSQL
+const pool = new Pool({
+  user: process.env.DB_USER,
+  host: process.env.DB_HOST,
+  database: process.env.DB_NAME,
+  password: process.env.DB_PASSWORD,
+  port: process.env.DB_PORT || 5432
+});
+
+// Kiểm tra kết nối database và thêm log
+pool.connect((err, client, release) => {
+  if (err) {
+    console.error('❌ Lỗi kết nối PostgreSQL:', err.stack);
+    process.exit(1); // Thoát ứng dụng nếu kết nối thất bại
+  }
+  console.log('✅ Đã kết nối thành công với cơ sở dữ liệu PostgreSQL!');
+  release();
+});
+
 /* ----------  Middleware toàn cục ---------- */
 app.use(helmet());                   // Thêm bảo mật HTTP header
-app.use(cors());
+const corsOptions = {
+  origin: 'http://localhost:3001', // Cho phép origin từ frontend
+  methods: ['GET', 'POST', 'PUT', 'DELETE'], // Các phương thức được phép
+  allowedHeaders: ['Content-Type', 'Authorization', 'Cache-Control', 'Pragma', 'Expires'], // Cho phép các header
+  credentials: true // Nếu cần gửi cookie hoặc thông tin xác thực
+};
+app.use(cors(corsOptions));
 app.use(morgan('combined'));
 app.use(express.json());
 app.use(rateLimit({

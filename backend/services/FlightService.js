@@ -7,9 +7,43 @@ const { hasAvailableSeats } = require('../utils/serviceUtils');
 class FlightService {
    /** Lấy toàn bộ chuyến bay, sắp xếp theo giờ khởi hành tăng dần. */
   async getAllFlights() {
-    const result = await db.query('SELECT * FROM flights ORDER BY departure_time ASC');
-    return result.rows.map(row => new Flight(row));
+  try {
+    const query = `
+      SELECT 
+        f.id,
+        f.airline_id,
+        f.flight_number,
+        f.route_id,
+        f.aircraft_id,
+        f.departure_time,
+        f.arrival_time,
+        f.flight_status,
+        f.base_economy_class_price,
+        f.base_business_class_price,
+        f.base_first_class_price,
+        a.name AS airline_name,
+        ac.aircraft_type,
+        r.departure_airport_id,
+        r.arrival_airport_id,
+        d.name AS departure_airport_name,
+        d.code AS departure_airport_code,
+        ar.name AS arrival_airport_name,
+        ar.code AS arrival_airport_code
+      FROM flights f
+      JOIN airlines a ON f.airline_id = a.id
+      JOIN aircrafts ac ON f.aircraft_id = ac.id
+      JOIN routes r ON f.route_id = r.id
+      JOIN airports d ON r.departure_airport_id = d.id
+      JOIN airports ar ON r.arrival_airport_id = ar.id
+      ORDER BY f.departure_time ASC;
+    `;
+    const result = await db.query(query);
+    return result.rows;
+  } catch (error) {
+    console.log('❌ Lỗi khi lấy danh sách chuyến bay:', error.message);
+    throw new Error(`Không thể lấy danh sách chuyến bay: ${error.message}`);
   }
+}
 
   /**
    * Lấy chi tiết chuyến bay.
@@ -140,44 +174,48 @@ class FlightService {
    * @param {Object} data - Thông tin chuyến bay.
    * @returns {Promise<Flight>}
    */
-  async createFlight(data) {
-    const client = await db.connect();
-    try {
-      await client.query('BEGIN');
+  // services/FlightService.js
+async createFlight(data) {
+  const client = await db.connect();
+  try {
+    console.log('📊 Dữ liệu tạo chuyến bay:', data);
+    await client.query('BEGIN');
 
-      const flight = new Flight(data);
-      const query = `
-        INSERT INTO flights (
-          airline_id, route_id, aircraft_id, flight_number,
-          departure_time, arrival_time, flight_status,
-          base_economy_class_price, base_business_class_price, base_first_class_price
-        )
-        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
-        RETURNING *;
-      `;
-      const values = [
-        flight.airline_id,
-        flight.route_id,
-        flight.aircraft_id,
-        flight.flight_number,
-        flight.departure_time,
-        flight.arrival_time,
-        flight.flight_status,
-        flight.base_economy_class_price,
-        flight.base_business_class_price,
-        flight.base_first_class_price
-      ];
-      const result = await client.query(query, values);
+    const flight = new Flight(data);
+    const query = `
+      INSERT INTO flights (
+        airline_id, route_id, aircraft_id, flight_number,
+        departure_time, arrival_time, flight_status,
+        base_economy_class_price, base_business_class_price, base_first_class_price
+      )
+      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
+      RETURNING *;
+    `;
+    const values = [
+      flight.airline_id,
+      flight.route_id,
+      flight.aircraft_id,
+      flight.flight_number,
+      flight.departure_time,
+      flight.arrival_time,
+      flight.flight_status,
+      flight.base_economy_class_price,
+      flight.base_business_class_price || 0,
+      flight.base_first_class_price || 0
+    ];
+    console.log('📊 Giá trị gửi vào truy vấn:', values);
+    const result = await client.query(query, values);
 
-      await client.query('COMMIT');
-      return new Flight(result.rows[0]);
-    } catch (error) {
-      await client.query('ROLLBACK');
-      throw error;
-    } finally {
-      client.release();
-    }
+    await client.query('COMMIT');
+    return new Flight(result.rows[0]);
+  } catch (error) {
+    await client.query('ROLLBACK');
+    console.log('❌ Lỗi khi tạo chuyến bay:', error.message);
+    throw new Error(`Lỗi khi tạo chuyến bay: ${error.message}`);
+  } finally {
+    client.release();
   }
+}
   /**
  * Hủy chuyến bay: đổi flight_status → 'Cancelled' + hủy vé còn hiệu lực
  * + Tuỳ chọn ghi announcement cho hành khách.
@@ -249,7 +287,4 @@ async deleteFlight(id) {
   return { deleted: true };
 }
 }
-
-
-
 module.exports = FlightService;

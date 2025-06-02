@@ -2,11 +2,11 @@ const AircraftService = require('../services/AircraftService');
 
 exports.createAircraft = async (req, res) => {
   try {
-    const aircraft = await AircraftService.createAircraft(req.body, req.user);
-    res.status(201).json({ success: true, data: aircraft });
-  } catch (err) {
-    res.status(400).json({ success: false, message: err.message });
-  }
+      const aircraft = await AircraftService.create(req.body);
+      res.status(201).json({ success: true, data: aircraft });
+    } catch (error) {
+      res.status(400).json({ success: false, error: error.message });
+    }
 };
 
 exports.updateAircraft = async (req, res) => {
@@ -20,11 +20,12 @@ exports.updateAircraft = async (req, res) => {
 
 exports.getAllAircrafts = async (req, res) => {
   try {
-    const aircrafts = await AircraftService.getAllAircrafts();
-    res.json({ success: true, data: aircrafts });
-  } catch (err) {
-    res.status(500).json({ success: false, message: err.message });
-  }
+      const aircrafts = await AircraftService.getAllAircrafts();
+      res.set('Cache-Control', 'no-store');
+      res.json({ success: true, data: aircrafts });
+    } catch (error) {
+      res.status(500).json({ success: false, error: error.message });
+    }
 };
 
 exports.getAircraftById = async (req, res) => {

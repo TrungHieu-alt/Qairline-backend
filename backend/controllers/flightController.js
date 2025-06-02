@@ -3,11 +3,13 @@ const flightService = new FlightService();
 
 exports.getAllFlights = async (req, res) => {
   const flights = await flightService.getAllFlights();
+  res.set('Cache-Control', 'no-store');
   res.json({ success: true, data: flights });
 };
 
 exports.getFlightById = async (req, res) => {
   const flight = await flightService.getFlightById(req.params.id);
+  res.set('Cache-Control', 'no-store');
   if (!flight) return res.status(404).json({ success: false, message: 'Flight not found' });
   res.json({ success: true, data: flight });
 };
@@ -19,6 +21,7 @@ exports.searchFlights = async (req, res) => {
     return res.status(400).json({ success: false, message: 'legs must be a non-empty array' });
 
   const results = await flightService.searchFlights(legs);
+  res.set('Cache-Control', 'no-store');
   res.json({ success: true, data: results });
 };
 

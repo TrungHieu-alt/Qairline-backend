@@ -1,21 +1,26 @@
 const jwt = require('jsonwebtoken');
 
-exports.authenticate = (req, res, next) => {
-  const token = req.headers.authorization?.split(' ')[1];
+const authenticate = (req, res, next) => {
+  const authHeader = req.headers['authorization'];
+  const token = authHeader && authHeader.split(' ')[1];
   if (!token) {
-    return res.status(401).json({ success: false, message: 'Không có token' });
+    return res.status(401).json({ success: false, error: 'Token không tồn tại' });
   }
+
   try {
-    req.user = jwt.verify(token, process.env.JWT_SECRET);
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    req.user = decoded;
     next();
-  } catch (err) {
-    res.status(401).json({ success: false, message: 'Token không hợp lệ hoặc hết hạn' });
+  } catch (error) {
+    return res.status(401).json({ success: false, error: 'Token không hợp lệ' });
   }
 };
 
-exports.authorize = (roles) => (req, res, next) => {
-  if (!roles.includes(req.user.role)) {
-    return res.status(403).json({ success: false, message: 'Không có quyền truy cập' });
+const authorize = (roles) => (req, res, next) => {
+  if (!req.user || !roles.includes(req.user.role.toLowerCase())) {
+    return res.status(403).json({ success: false, error: 'Không có quyền truy cập' });
   }
   next();
 };
+
+module.exports = { authenticate, authorize };

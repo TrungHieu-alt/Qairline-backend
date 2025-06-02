@@ -1,15 +1,23 @@
 const EmployeeAuthService = require('../services/EmployeeAuthService');
 
-exports.login = async (req, res) => {
-  try {
-    const result = await EmployeeAuthService.login(req.body.email, req.body.password);
-    res.json(result);
-  } catch (err) {
-    const status = err.message === 'Email not found' || err.message === 'Incorrect password' ? 401 : 400;
-    res.status(status).json({ error: err.message });
+class EmployeeAuthController {
+  async login(req, res) {
+    try {
+      const { email, password } = req.body;
+      const result = await EmployeeAuthService.login(email, password);
+      if (!result || !result.employee || !result.employee.id) {
+        throw new Error('Dữ liệu nhân viên không hợp lệ');
+      }
+      return res.status(200).json(result);
+    } catch (error) {
+      console.log('❌ Lỗi đăng nhập nhân viên:', error.message);
+      return res.status(401).json({ success: false, error: error.message });
+    }
   }
-};
 
-exports.logout = async (req, res) => {
-  res.json({ message: 'Employee logged out successfully' });
-};
+  async logout(req, res) {
+    return res.json({ success: true, message: 'Đăng xuất thành công' });
+  }
+}
+
+module.exports = new EmployeeAuthController();

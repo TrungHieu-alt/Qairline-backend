@@ -1,22 +1,9 @@
 const express = require('express');
 const router = express.Router();
-
-// -----------------------------------------------------------------------------
-// MIDDLEWARE IMPORTS
-// -----------------------------------------------------------------------------
 const { authenticate, authorize } = require('../middlewares/authMiddleware');
 const { handleValidationErrors } = require('../middlewares/validateUtils');
-
-// Validators – grouped by resource
-const {
-  validateCreateFlight,
-  validateSearchFlights,
-  validateDelayFlight,
-} = require('../middlewares/validateFlight');
-const {
-  validateCreateCustomer,
-  validateRegister,
-} = require('../middlewares/validateCustomer');
+const { validateCreateFlight, validateSearchFlights, validateDelayFlight } = require('../middlewares/validateFlight');
+const { validateCreateCustomer, validateRegister } = require('../middlewares/validateCustomer');
 const { validateLogin } = require('../middlewares/validateLogin');
 const {
   validateBookTicket,
@@ -24,52 +11,55 @@ const {
   validateTicketParams,
   validateTicketCode,
   validateGetTicketsByEmail,
-  validateTicketStats,
+  validateTicketStats
 } = require('../middlewares/validateTicket');
-const {
-  validateCreateAnnouncement,
-  validateUpdateAnnouncement,
-  validateDeleteAnnouncement,
-} = require('../middlewares/validateAnnouncement');
-const {
-  validateCreateAircraft,
-  validateUpdateAircraft,
-  validateGetAircraftById,
-} = require('../middlewares/validateAircraft');
-const {
-  validateCreateTicketClass,
-  validateUpdateTicketClass,
-  validateGetPerks,
-} = require('../middlewares/validateTicketClass');
+const { validateCreateAnnouncement, validateUpdateAnnouncement, validateDeleteAnnouncement } = require('../middlewares/validateAnnouncement');
+const { validateCreateAircraft, validateUpdateAircraft, validateGetAircraftById } = require('../middlewares/validateAircraft');
+const { validateCreateTicketClass, validateUpdateTicketClass, validateGetPerks } = require('../middlewares/validateTicketClass');
 
-// -----------------------------------------------------------------------------
-// CONTROLLER IMPORTS
-// -----------------------------------------------------------------------------
-const StatisticController = require('../controllers/statisticController');
 const EmployeeAuthController = require('../controllers/employeeAuthController');
-const CustomerAuthController = require('../controllers/customerAuthController');
 const CustomerController = require('../controllers/customerController');
 const FlightController = require('../controllers/flightController');
 const TicketController = require('../controllers/ticketController');
+const CustomerAuthController = require('../controllers/customerAuthController');
 const TicketClassController = require('../controllers/ticketClassController');
 const AnnouncementController = require('../controllers/announcementController');
 const AircraftController = require('../controllers/aircraftController');
+const AirlineController = require('../controllers/airlineController');
+const RouteController = require('../controllers/RouteController');
+const AirportController = require('../controllers/AirportController');
+const StatisticController = require('../controllers/statisticController');
 
-// -----------------------------------------------------------------------------
-// PUBLIC ROUTES
-// -----------------------------------------------------------------------------
-router
-  // Auth
-  .post('/employee/login', validateLogin, handleValidationErrors, EmployeeAuthController.login)
-  .post('/customer/login', validateLogin, handleValidationErrors, CustomerAuthController.login)
-  .post('/customer/register', validateRegister, handleValidationErrors, CustomerAuthController.register)
+//Auth
+router.post('/employee/login', validateLogin, handleValidationErrors, EmployeeAuthController.login);
+router.post('/customer/login', validateLogin, handleValidationErrors, CustomerAuthController.login);
+router.post('/customer/register', validateRegister, handleValidationErrors, CustomerAuthController.register);
+router.get('/customer/register', (req, res) => {
+res.status(405).json({ success: false, error: 'Method not allowed. Use POST to register.' });
+});
+router.post('/customer', validateCreateCustomer, handleValidationErrors, CustomerController.createCustomer);
 
-  // Flights & lookup data
+//route
+router.get('/routes', RouteController.getAll);
+router.post('/routes', authenticate, authorize(['admin']), RouteController.create);
+
+//airlines
+router.post('/airlines', authenticate, authorize(['admin']), AirlineController.create);
+router.get('/airlines', AirlineController.getAll);
+
+//airport
+router.get('/airports', AirportController.getAll);
+
+// Flights & lookup data
+router  
   .post('/flights/search', validateSearchFlights, handleValidationErrors, FlightController.searchFlights)
   .get('/ticket-classes', TicketClassController.getAll)
   .get('/announcements', AnnouncementController.getAll)
   .get('/aircrafts', AircraftController.getAllAircrafts)
-  .get('/aircrafts/:id', validateGetAircraftById, handleValidationErrors, AircraftController.getAircraftById);
+  .get('/aircrafts/:id', validateGetAircraftById, handleValidationErrors, AircraftController.getAircraftById)
+  .get('/flights/:id', FlightController.getFlightById)
+  .get('/flights', FlightController.getAllFlights);
+
 
 // -----------------------------------------------------------------------------
 // CUSTOMER ROUTES

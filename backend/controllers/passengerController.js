@@ -12,7 +12,8 @@ class PassengerController {
 
   async getAll(req, res, next) {
     try {
-      const passengers = await PassengerService.getAllPassengers();
+      // Allow filtering via query parameters using the search service
+      const passengers = await PassengerService.searchPassengers(req.query);
       res.status(200).json({ success: true, data: passengers });
     } catch (error) {
       throw error;

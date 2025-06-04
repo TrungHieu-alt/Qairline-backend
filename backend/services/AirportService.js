@@ -6,23 +6,21 @@ class AirportService {
 
   /**
    * Lấy danh sách sân bay với tùy chọn phân trang và lọc.
-   * @param {Object} options - Tùy chọn: page, limit, nameKeyword, iataCode, icaoCode, cityId, countryId, ...
+  * @param {Object} options - Tùy chọn: page, limit, nameKeyword, code, cityId
    * @returns {Promise<Object>} - { data: [], total: number }
    */
   async getAirports(options = {}) {
     const {
       page = 1,
       limit = 10,
-      nameKeyword,      // New filter: keyword in name
-      iataCode,         // New filter: exact match for iata_code
-      icaoCode,         // New filter: exact match for icao_code
-      cityId,           // New filter: by city_id (UUID)
-      countryId         // New filter: by country_id (UUID)
+      nameKeyword,      // Filter: keyword in name
+      code,             // Filter: exact match for code
+      cityId            // Filter: by city_id (UUID)
     } = options;
     const offset = (page - 1) * limit;
 
     let query = `
-      SELECT id, name, iata_code, icao_code, city_id, country_id, latitude, longitude, timezone, created_at, updated_at
+      SELECT id, name, code, city_id, created_at, updated_at
       FROM airports
       WHERE 1=1 -- Start with a true condition to easily append others
     `;
@@ -46,21 +44,12 @@ class AirportService {
         paramIndex++;
     }
 
-     // Filter by iata_code (exact match)
-    if (iataCode) {
-        query += ` AND iata_code = $${paramIndex}`;
-        countQuery += ` AND iata_code = $${paramIndex}`;
-        filterValues.push(iataCode);
-        countFilterValues.push(iataCode);
-        paramIndex++;
-    }
-
-     // Filter by icao_code (exact match)
-    if (icaoCode) {
-        query += ` AND icao_code = $${paramIndex}`;
-        countQuery += ` AND icao_code = $${paramIndex}`;
-        filterValues.push(icaoCode);
-        countFilterValues.push(icaoCode);
+    // Filter by code (exact match)
+    if (code) {
+        query += ` AND code = $${paramIndex}`;
+        countQuery += ` AND code = $${paramIndex}`;
+        filterValues.push(code);
+        countFilterValues.push(code);
         paramIndex++;
     }
 
@@ -74,17 +63,8 @@ class AirportService {
         paramIndex++;
     }
 
-    // Filter by country_id
-    if (countryId) {
-        query += ` AND country_id = $${paramIndex}`;
-        countQuery += ` AND country_id = $${paramIndex}`;
-        filterValues.push(countryId); // UUID
-        countFilterValues.push(countryId); // UUID
-        paramIndex++;
-    }
 
-
-    // Add other filters here if needed (e.g., by latitude/longitude range, timezone)
+    // Add other filters here if needed
 
     query += `
       ORDER BY name ASC -- Default order
@@ -117,7 +97,7 @@ class AirportService {
    async getAirportById(id) {
        try {
            const query = `
-                SELECT id, name, iata_code, icao_code, city_id, country_id, latitude, longitude, timezone, created_at, updated_at
+                SELECT id, name, code, city_id, created_at, updated_at
                 FROM airports
                 WHERE id = $1;
            `;
@@ -134,7 +114,7 @@ class AirportService {
 
   /**
    * Tạo sân bay mới.
-   * @param {Object} data - name, iata_code, icao_code (optional), city_id (UUID), country_id (UUID), latitude (optional), longitude (optional), timezone (optional).
+  * @param {Object} data - name, code, city_id (UUID).
    * @returns {Promise<Object>} Sân bay đã tạo.
    */
   async createAirport(data) {
@@ -142,24 +122,19 @@ class AirportService {
     try {
       await client.query('BEGIN');
 
-      // TODO: Add input validation (e.g., name, iata_code, city_id, country_id are required)
-      // TODO: Validate if city_id and country_id exist in their respective tables
-      // TODO: Validate uniqueness of iata_code and icao_code
+      // TODO: Add input validation (e.g., name and code are required)
+      // TODO: Validate if city_id exists
+      // TODO: Validate uniqueness of code
 
       const query = `
-        INSERT INTO airports (name, iata_code, icao_code, city_id, country_id, latitude, longitude, timezone)
-        VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
-        RETURNING id, name, iata_code, icao_code, city_id, country_id, latitude, longitude, timezone, created_at, updated_at;
+        INSERT INTO airports (name, code, city_id)
+        VALUES ($1, $2, $3)
+        RETURNING id, name, code, city_id, created_at, updated_at;
       `;
       const values = [
         data.name,
-        data.iata_code,
-        data.icao_code,
-        data.city_id,   // UUID
-        data.country_id,// UUID
-        data.latitude,
-        data.longitude,
-        data.timezone
+        data.code,
+        data.city_id   // UUID
       ];
       const result = await client.query(query, values);
 
@@ -177,7 +152,7 @@ class AirportService {
   /**
    * Cập nhật thông tin sân bay.
    * @param {string} id - UUID sân bay.
-   * @param {Object} data - name, iata_code, icao_code (optional), city_id (UUID), country_id (UUID), latitude (optional), longitude (optional), timezone (optional).
+   * @param {Object} data - name, code, city_id (UUID).
    * @returns {Promise<Object>} Sân bay đã cập nhật.
    */
   async updateAirport(id, data) {
@@ -186,24 +161,19 @@ class AirportService {
       await client.query('BEGIN');
 
       // TODO: Add input validation
-      // TODO: Validate if city_id and country_id exist
-      // TODO: Validate uniqueness of iata_code and icao_code if they are being updated
+      // TODO: Validate if city_id exists
+      // TODO: Validate uniqueness of code if it is being updated
 
       const query = `
         UPDATE airports
-        SET name = $1, iata_code = $2, icao_code = $3, city_id = $4, country_id = $5, latitude = $6, longitude = $7, timezone = $8, updated_at = NOW()
-        WHERE id = $9
-        RETURNING id, name, iata_code, icao_code, city_id, country_id, latitude, longitude, timezone, created_at, updated_at;
+        SET name = $1, code = $2, city_id = $3, updated_at = NOW()
+        WHERE id = $4
+        RETURNING id, name, code, city_id, created_at, updated_at;
       `;
       const values = [
         data.name,
-        data.iata_code,
-        data.icao_code,
+        data.code,
         data.city_id,   // UUID
-        data.country_id,// UUID
-        data.latitude,
-        data.longitude,
-        data.timezone,
         id // UUID id
       ];
       const result = await client.query(query, values);

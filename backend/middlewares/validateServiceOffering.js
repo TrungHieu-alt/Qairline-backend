@@ -20,12 +20,12 @@ exports.validateCreateServiceOffering = [
 ];
 
 exports.validateUpdateServiceOffering = [
-  param('travel_class_id')
-    .notEmpty().withMessage('travel_class_id in param is required')
-    .isUUID().withMessage('Invalid travel_class_id UUID format in param'),
-  param('service_id')
-    .notEmpty().withMessage('service_id in param is required')
-    .isUUID().withMessage('Invalid service_id UUID format in param'),
+  param('travelClassId')
+    .notEmpty().withMessage('travelClassId in param is required')
+    .isUUID().withMessage('Invalid travelClassId UUID format in param'),
+  param('serviceId')
+    .notEmpty().withMessage('serviceId in param is required')
+    .isUUID().withMessage('Invalid serviceId UUID format in param'),
   body('is_offered')
     .optional()
     .isBoolean().withMessage('is_offered must be a boolean'),
@@ -48,21 +48,21 @@ exports.validateUpdateServiceOffering = [
 ];
 
 exports.validateGetServiceOfferingById = [
-  param('travel_class_id')
-    .notEmpty().withMessage('travel_class_id in param is required')
-    .isUUID().withMessage('Invalid travel_class_id UUID format in param'),
-  param('service_id')
-    .notEmpty().withMessage('service_id in param is required')
-    .isUUID().withMessage('Invalid service_id UUID format in param'),
+  param('travelClassId')
+    .notEmpty().withMessage('travelClassId in param is required')
+    .isUUID().withMessage('Invalid travelClassId UUID format in param'),
+  param('serviceId')
+    .notEmpty().withMessage('serviceId in param is required')
+    .isUUID().withMessage('Invalid serviceId UUID format in param'),
 ];
 
 exports.validateDeleteServiceOffering = [
-  param('travel_class_id')
-    .notEmpty().withMessage('travel_class_id in param is required')
-    .isUUID().withMessage('Invalid travel_class_id UUID format in param'),
-  param('service_id')
-    .notEmpty().withMessage('service_id in param is required')
-    .isUUID().withMessage('Invalid service_id UUID format in param'),
+  param('travelClassId')
+    .notEmpty().withMessage('travelClassId in param is required')
+    .isUUID().withMessage('Invalid travelClassId UUID format in param'),
+  param('serviceId')
+    .notEmpty().withMessage('serviceId in param is required')
+    .isUUID().withMessage('Invalid serviceId UUID format in param'),
 ];
 
 

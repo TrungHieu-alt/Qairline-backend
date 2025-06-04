@@ -43,13 +43,7 @@ exports.validateDelayFlight = [
 
 // Validate hiện có cho createFlight giữ nguyên
 exports.validateCreateFlight = [
-  body('airline_id').isUUID().withMessage('ID hãng hàng không không hợp lệ'),
   body('aircraft_id').isUUID().withMessage('ID máy bay không hợp lệ'),
-  body('flight_number')
-    .notEmpty()
-    .withMessage('Số hiệu chuyến bay là bắt buộc')
-    .isLength({ max: 10 })
-    .withMessage('Số hiệu chuyến bay quá dài'),
   body('departure_time')
     .isISO8601()
     .toDate()

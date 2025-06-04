@@ -20,7 +20,7 @@ class ServiceOfferingService {
     const offset = (page - 1) * limit;
 
     let query = `
-      SELECT id, travel_class_id, service_id, is_offered, from_month, to_month, created_at, updated_at
+      SELECT travel_class_id, service_id, is_offered, from_month, to_month, created_at, updated_at
       FROM service_offerings
       WHERE 1=1 -- Start with a true condition to easily append others
     `;
@@ -113,14 +113,14 @@ class ServiceOfferingService {
    * @param {string} id - UUID dịch vụ cung cấp.
    * @returns {Promise<Object|null>}
    */
-   async getServiceOfferingById(id) {
+  async getServiceOfferingById(travel_class_id, service_id) {
        try {
            const query = `
-                SELECT id, travel_class_id, service_id, is_offered, from_month, to_month, created_at, updated_at
+                SELECT travel_class_id, service_id, is_offered, from_month, to_month, created_at, updated_at
                 FROM service_offerings
-                WHERE id = $1;
+                WHERE travel_class_id = $1 AND service_id = $2;
            `;
-           const result = await db.query(query, [id]); // UUID id
+           const result = await db.query(query, [travel_class_id, service_id]);
            if (result.rows.length === 0) {
                return null; // Service offering not found
            }
@@ -148,7 +148,7 @@ class ServiceOfferingService {
       const query = `
         INSERT INTO service_offerings (travel_class_id, service_id, is_offered, from_month, to_month)
         VALUES ($1, $2, $3, $4, $5)
-        RETURNING id, travel_class_id, service_id, is_offered, from_month, to_month, created_at, updated_at;
+        RETURNING travel_class_id, service_id, is_offered, from_month, to_month, created_at, updated_at;
       `;
       const values = [
         data.travel_class_id, // UUID
@@ -176,7 +176,7 @@ class ServiceOfferingService {
    * @param {Object} data - travel_class_id (UUID, optional), service_id (UUID, optional), is_offered (boolean, optional), from_month (integer, optional), to_month (integer, optional).
    * @returns {Promise<Object>} Dịch vụ cung cấp đã cập nhật.
    */
-  async updateServiceOffering(id, data) {
+  async updateServiceOffering(travel_class_id, service_id, data) {
     const client = await db.connect();
     try {
       await client.query('BEGIN');
@@ -218,7 +218,7 @@ class ServiceOfferingService {
       if (updateFields.length === 0) {
           // No fields to update
           await client.query('ROLLBACK'); // No changes, rollback the BEGIN
-          const existing = await this.getServiceOfferingById(id); // Fetch current data
+          const existing = await this.getServiceOfferingById(travel_class_id, service_id); // Fetch current data
           if (!existing) {
               throw new Error('Service offering not found');
           }
@@ -227,12 +227,13 @@ class ServiceOfferingService {
 
       updateFields.push(`updated_at = NOW()`);
 
-      values.push(id); // UUID id for WHERE clause
+      values.push(travel_class_id); // composite key
+      values.push(service_id);
       const query = `
         UPDATE service_offerings
         SET ${updateFields.join(', ')}
-        WHERE id = $${paramIndex}
-        RETURNING id, travel_class_id, service_id, is_offered, from_month, to_month, created_at, updated_at;
+        WHERE travel_class_id = $${paramIndex} AND service_id = $${paramIndex + 1}
+        RETURNING travel_class_id, service_id, is_offered, from_month, to_month, created_at, updated_at;
       `;
 
       const result = await client.query(query, values);
@@ -257,7 +258,7 @@ class ServiceOfferingService {
    * @param {string} id - UUID dịch vụ cung cấp.
    * @returns {Promise<{deleted: true, id: string}>}
    */
-  async deleteServiceOffering(id) {
+  async deleteServiceOffering(travel_class_id, service_id) {
     const client = await db.connect();
     try {
       await client.query('BEGIN');
@@ -268,17 +269,17 @@ class ServiceOfferingService {
 
       const query = `
         DELETE FROM service_offerings
-        WHERE id = $1
-        RETURNING id;
+        WHERE travel_class_id = $1 AND service_id = $2
+        RETURNING travel_class_id, service_id;
       `;
-      const result = await client.query(query, [id]); // UUID id
+      const result = await client.query(query, [travel_class_id, service_id]);
 
       if (result.rows.length === 0) {
         throw new Error('Service offering not found');
       }
 
       await client.query('COMMIT');
-      return { deleted: true, id: result.rows[0].id };
+      return { deleted: true, travel_class_id: result.rows[0].travel_class_id, service_id: result.rows[0].service_id };
     } catch (error) {
       await client.query('ROLLBACK');
       console.error(`❌ Error deleting service offering ${id}:`, error.message);

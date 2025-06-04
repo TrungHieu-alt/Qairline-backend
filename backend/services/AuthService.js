@@ -7,10 +7,10 @@ const PassengerService = require('./PassengerService'); // Needs to be created
 
 class AuthService {
 
-    async registerPassenger({ email, password, firstName, lastName, birthDate, gender, identityNumber, phoneNumber, address, country }) {
+    async registerPassenger({ email, password, firstName, lastName, phoneNumber, address, city, state, zipcode, country }) {
         // Logic đăng ký passenger
         // 1. Validate input
-        if (!email || !password || !firstName || !lastName || !birthDate || !gender || !identityNumber || !phoneNumber) {
+        if (!email || !password || !firstName || !lastName || !phoneNumber) {
             throw new Error('Missing required passenger registration fields');
         }
         if (!process.env.JWT_SECRET) {
@@ -53,20 +53,20 @@ class AuthService {
             // 6. Insert into passengers table (using the same UUID)
             // This assumes passenger table has columns matching input data
             const passengerInsertQuery = `
-                 INSERT INTO passengers (id, first_name, last_name, birth_date, gender, identity_number, phone_number, email, address, country, created_at, updated_at)
-                 VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, NOW(), NOW())
+                 INSERT INTO passengers (id, first_name, last_name, email, phone_number, address, city, state, zipcode, country)
+                 VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
                  RETURNING id, first_name, last_name, email;
              `;
             const passengerResult = await client.query(passengerInsertQuery, [
                  userId, // Use the same UUID as user_id
                  firstName,
                  lastName,
-                 birthDate,
-                 gender,
-                 identityNumber,
-                 phoneNumber,
                  email,
-                 address, // Assuming address and country columns exist in passengers V2
+                 phoneNumber,
+                 address,
+                 city,
+                 state,
+                 zipcode,
                  country
             ]);
             const newPassengerInfo = passengerResult.rows[0];
@@ -102,7 +102,7 @@ class AuthService {
         }
     }
 
-    async registerAdmin({ email, password, firstName, lastName }) {
+    async registerAdmin({ email, password }) {
         // Logic đăng ký admin
         // 1. Validate input
         if (!email || !password) {
@@ -129,11 +129,11 @@ class AuthService {
 
             // 5. Insert into users table with role 'admin'
             const userInsertQuery = `
-                INSERT INTO users (id, email, password_hash, role, first_name, last_name, created_at, updated_at)
-                VALUES ($1, $2, $3, $4, $5, $6, NOW(), NOW())
-                RETURNING id, email, role, first_name, last_name;
+                INSERT INTO users (id, email, password_hash, role, created_at, updated_at)
+                VALUES ($1, $2, $3, $4, NOW(), NOW())
+                RETURNING id, email, role;
             `;
-            const userResult = await client.query(userInsertQuery, [userId, email, passwordHash, 'admin', firstName, lastName]);
+            const userResult = await client.query(userInsertQuery, [userId, email, passwordHash, 'admin']);
             const newUser = userResult.rows[0];
 
             await client.query('COMMIT');

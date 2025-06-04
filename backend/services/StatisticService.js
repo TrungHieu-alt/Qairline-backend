@@ -45,7 +45,6 @@ class StatisticService {
         r.id AS reservation_id,
         p.first_name,
         p.last_name,
-        f.flight_number, -- Assuming flights table has flight_number
         sd.id AS seat_detail_id, -- Include seat detail ID
         tc.name AS travel_class_name, -- Assuming travel_classes table has name
         ps.amount AS paid_amount, -- Amount from payment_statuses

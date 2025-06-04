@@ -17,7 +17,7 @@ class CountryService {
     const offset = (page - 1) * limit;
 
     let query = `
-      SELECT id, name, code, created_at, updated_at
+      SELECT id, name, code
       FROM countries
       WHERE 1=1 -- Start with a true condition to easily append others
     `;
@@ -84,7 +84,7 @@ class CountryService {
    async getCountryById(id) {
        try {
            const query = `
-                SELECT id, name, code, created_at, updated_at
+                SELECT id, name, code
                 FROM countries
                 WHERE id = $1;
            `;
@@ -115,7 +115,7 @@ class CountryService {
       const query = `
         INSERT INTO countries (name, code)
         VALUES ($1, $2)
-        RETURNING id, name, code, created_at, updated_at;
+        RETURNING id, name, code;
       `;
       const values = [
         data.name,
@@ -173,14 +173,12 @@ class CountryService {
            return existing; // Return existing data if no updates were requested
       }
 
-      updateFields.push(`updated_at = NOW()`);
-
       values.push(id); // UUID id for WHERE clause
       const query = `
         UPDATE countries
         SET ${updateFields.join(', ')}
         WHERE id = $${paramIndex}
-        RETURNING id, name, code, created_at, updated_at;
+        RETURNING id, name, code;
       `;
 
       const result = await client.query(query, values);
@@ -220,10 +218,12 @@ class CountryService {
         throw new Error('Cannot delete country: Still has cities linked.');
       }
 
-      // Check for related airports
+      // Check for related airports via cities
       const airportsRef = await client.query(
-        'SELECT 1 FROM airports WHERE country_id = $1 LIMIT 1',
-        [id] // UUID id
+        `SELECT 1 FROM airports a
+         JOIN cities c ON a.city_id = c.id
+         WHERE c.country_id = $1 LIMIT 1`,
+        [id]
       );
       if (airportsRef.rows.length > 0) {
         throw new Error('Cannot delete country: Still has airports linked.');

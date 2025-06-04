@@ -16,20 +16,20 @@ class PassengerService {
         const passengerId = data.id || crypto.randomUUID(); // Use provided ID or generate new UUID
 
         const query = `
-            INSERT INTO passengers (id, first_name, last_name, birth_date, gender, identity_number, phone_number, email, address, country, created_at, updated_at)
-            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, NOW(), NOW())
+            INSERT INTO passengers (id, first_name, last_name, email, phone_number, address, city, state, zipcode, country)
+            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
             RETURNING *;
         `;
         const values = [
             passengerId,
             data.first_name,
             data.last_name,
-            data.birth_date,
-            data.gender,
-            data.identity_number,
-            data.phone_number,
             data.email,
+            data.phone_number,
             data.address,
+            data.city,
+            data.state,
+            data.zipcode,
             data.country
         ];
         try {
@@ -65,7 +65,7 @@ class PassengerService {
 
         const query = `
             UPDATE passengers
-            SET ${setClauses}, updated_at = NOW()
+            SET ${setClauses}
             WHERE id = $${values.length}
             RETURNING *;
         `;
@@ -119,11 +119,11 @@ class PassengerService {
 
     /**
      * Searches for passenger records based on provided filters.
-     * @param {Object} filters - Optional filters (email, firstName, lastName, identityNumber, phoneNumber).
+     * @param {Object} filters - Optional filters (email, firstName, lastName, phoneNumber).
      * @returns {Promise<Array<Object>>} An array of matching passenger records.
      */
     async searchPassengers(filters = {}) {
-        const { email, firstName, lastName, identityNumber, phoneNumber } = filters;
+        const { email, firstName, lastName, phoneNumber } = filters;
         const queryParts = [];
         const values = [];
         let paramIndex = 1;
@@ -139,10 +139,6 @@ class PassengerService {
         if (lastName) {
             queryParts.push(`last_name ILIKE $${paramIndex++}`);
             values.push(`%${lastName}%`);
-        }
-        if (identityNumber) {
-            queryParts.push(`identity_number ILIKE $${paramIndex++}`);
-            values.push(`%${identityNumber}%`);
         }
         if (phoneNumber) {
             queryParts.push(`phone_number ILIKE $${paramIndex++}`);

@@ -246,7 +246,11 @@ class ServiceOfferingService {
       return result.rows[0];
     } catch (error) {
       await client.query('ROLLBACK');
-      console.error(`❌ Error updating service offering ${id}:`, error.message);
+      console.error('❌ Error updating service offering:', {
+        travel_class_id,
+        service_id,
+        error: error.message,
+      });
       throw new Error(`Could not update service offering: ${error.message}`);
     } finally {
       client.release();

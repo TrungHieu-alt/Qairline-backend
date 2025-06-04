@@ -13,16 +13,10 @@ exports.validateCreateServiceOffering = [
     .isBoolean().withMessage('is_offered must be a boolean'),
   body('from_month')
     .notEmpty().withMessage('from_month is required')
-    .isInt({ min: 1, max: 12 }).withMessage('from_month must be an integer between 1 and 12'),
+    .isString().withMessage('from_month must be a string'),
   body('to_month')
     .notEmpty().withMessage('to_month is required')
-    .isInt({ min: 1, max: 12 }).withMessage('to_month must be an integer between 1 and 12')
-    .custom((value, { req }) => {
-      if (req.body.from_month !== undefined && value < req.body.from_month) {
-        throw new Error('to_month must be greater than or equal to from_month');
-      }
-      return true;
-    }),
+    .isString().withMessage('to_month must be a string'),
 ];
 
 exports.validateUpdateServiceOffering = [

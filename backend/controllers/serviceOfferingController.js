@@ -37,7 +37,7 @@ class ServiceOfferingController {
 
   async delete(req, res, next) {
     try {
-      const result = await ServiceOfferingService.delete(req.params.travelClassId, req.params.serviceId);
+      const result = await ServiceOfferingService.deleteServiceOffering(req.params.travelClassId, req.params.serviceId);
       res.status(200).json({ success: true, message: 'Service Offering deleted successfully', data: result });
     } catch (error) {
       throw error;
@@ -47,7 +47,7 @@ class ServiceOfferingController {
   async getAll(req, res, next) {
     try {
       const serviceOfferings = await ServiceOfferingService.getAll();
-      res.status(200).json({ success: true, message: 'Service Offerings fetched successfully', data: serviceOfferings });
+      res.status(200).json({ success: true, message: 'Service Offerings fetched successfully', data: await ServiceOfferingService.getAllServiceOfferings() });
     } catch (error) {
       throw error;
     }

@@ -54,10 +54,7 @@ class FlightController {
 
   async cancelFlight(req, res, next) {
   try {
-    const flight = await FlightService.cancelFlight(req.params.id, {
-      reason: req.body.reason || '',
-      employeeId: req.user?.id || null
-    });
+    const flight = await FlightService.cancelFlight(req.params.id);
     res.json({ success: true, data: flight });
   } catch (err) {
     next(err);

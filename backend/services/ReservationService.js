@@ -88,6 +88,38 @@ class ReservationService {
       client.release();
     }
   }
+
+  /**
+   * Get all reservations including payment information.
+   * @returns {Promise<Array<Object>>} Array of reservation records.
+   */
+  async getAllReservations() {
+    const query = `
+      SELECT r.id, r.passenger_id, r.seat_id, r.reservation_date,
+             ps.status AS payment_status, ps.amount, ps.due_date
+      FROM reservations r
+      LEFT JOIN payment_statuses ps ON r.id = ps.reservation_id;
+    `;
+    const result = await db.query(query);
+    return result.rows;
+  }
+
+  /**
+   * Get reservations by passenger ID including payment information.
+   * @param {string} passengerId - ID of the passenger.
+   * @returns {Promise<Array<Object>>} Array of reservation records for the passenger.
+   */
+  async getReservationsByPassengerId(passengerId) {
+    const query = `
+      SELECT r.id, r.passenger_id, r.seat_id, r.reservation_date,
+             ps.status AS payment_status, ps.amount, ps.due_date
+      FROM reservations r
+      LEFT JOIN payment_statuses ps ON r.id = ps.reservation_id
+      WHERE r.passenger_id = $1;
+    `;
+    const result = await db.query(query, [passengerId]);
+    return result.rows;
+  }
 }
 
 module.exports = new ReservationService();

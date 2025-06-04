@@ -8,13 +8,6 @@ exports.validateCreateAnnouncement = [
  .notEmpty().withMessage('Loại thông báo là bắt buộc')
  .isIn(['INFO', 'PROMOTION', 'WARNING', 'DELAY']).withMessage('Loại thông báo không hợp lệ'),
 
-  body('expiry_date')
-    .isISO8601()
-    .toDate()
-    .withMessage('Ngày hết hạn không hợp lệ'),
-  body('created_by')
-    .isUUID()
-    .withMessage('ID người tạo không hợp lệ')
 ];
 
 exports.validateUpdateAnnouncement = [
@@ -26,19 +19,9 @@ exports.validateUpdateAnnouncement = [
  .optional()
  .notEmpty().withMessage('Nội dung không được rỗng nếu có'),
  body('type')
- .optional()
- .isIn(['INFO', 'PROMOTION', 'WARNING', 'DELAY']).withMessage('Loại thông báo không hợp lệ'),
-  body('expiry_date')
- .optional()
-    .isISO8601()
-    .toDate()
-    .withMessage('Ngày hết hạn không hợp lệ'),
-  body('created_by')
- .optional()
-    .isUUID()
-    .withMessage('ID người tạo không hợp lệ')
+    .optional()
+    .isIn(['INFO', 'PROMOTION', 'WARNING', 'DELAY']).withMessage('Loại thông báo không hợp lệ'),
 ];
-
 exports.validateDeleteAnnouncement = [
   param('id').isUUID().withMessage('ID thông báo không hợp lệ')
 ];

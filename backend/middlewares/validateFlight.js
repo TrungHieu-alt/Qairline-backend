@@ -44,7 +44,6 @@ exports.validateDelayFlight = [
 // Validate hiện có cho createFlight giữ nguyên
 exports.validateCreateFlight = [
   body('airline_id').isUUID().withMessage('ID hãng hàng không không hợp lệ'),
-  body('route_id').isUUID().withMessage('ID tuyến đường không hợp lệ'),
   body('aircraft_id').isUUID().withMessage('ID máy bay không hợp lệ'),
   body('flight_number')
     .notEmpty()
@@ -65,19 +64,6 @@ exports.validateCreateFlight = [
       }
       return true;
     }),
-  body('base_economy_class_price')
-    .isFloat({ min: 0 })
-    .withMessage('Giá hạng phổ thông phải là số không âm'),
-  body('base_business_class_price')
-    .isFloat({ min: 0 })
-    .withMessage('Giá hạng thương gia phải là số không âm'),
-  body('base_first_class_price')
-    .isFloat({ min: 0 })
-    .withMessage('Giá hạng nhất phải là số không âm'),
-  body('flight_status')
-    .optional()
-    .isIn(['Scheduled', 'Delayed', 'Cancelled', 'Completed'])
-    .withMessage('Trạng thái chuyến bay không hợp lệ')
 ];
 
 exports.validateUpdateFlight = [

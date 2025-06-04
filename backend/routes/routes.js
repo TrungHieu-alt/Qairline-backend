@@ -19,6 +19,9 @@ const CountryController = require('../controllers/countryController');
 const StatisticController = require('../controllers/statisticController');
 // Add ServiceController here when available
 
+// Add serviceController instance here when available
+
+
 // Validation Middleware
 const { validateRegister, validateLogin } = require('../middlewares/validateAuth');
 const { validateCreateAircraft, validateUpdateAircraft, validateGetAircraftById } = require('../middlewares/validateAircraft');
@@ -85,7 +88,7 @@ router.delete('/passengers/:id', authenticate, authorize(['admin']), validateGet
 router.post('/reservations', authenticate, authorize(['customer']), validateCreateReservation, handleValidationErrors, ReservationController.create);
 router.get('/reservations/:id', authenticate, validateGetReservationById, handleValidationErrors, ReservationController.getById); // Auth for customer or admin
 router.put('/reservations/:id/cancel', authenticate, authorize(['customer']), validateCancelReservation, handleValidationErrors, ReservationController.cancel); // Assuming validateCancelReservation exists
-router.get('/passengers/:passengerId/reservations', authenticate, authorize(['customer', 'admin']), validateGetReservationsByPassengerId, handleValidationErrors, ReservationController.getByPassengerId);
+router.get('/passengers/:passengerId/reservations', authenticate, authorize(['customer', 'admin']), validateGetReservationsByPassengerId, handleValidationErrors, ReservationController.getReservationsByPassengerId);
 router.get('/reservations', authenticate, authorize(['admin']), ReservationController.getAll); // Assuming getAll method in ReservationController
 
 // Service Offering Routes (Admin only for CRUD)

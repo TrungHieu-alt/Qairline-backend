@@ -42,7 +42,7 @@ class ReservationController {
 
   async getReservationsByPassengerId(req, res, next) {
     try {
-      const reservations = await ReservationService.getByPassengerId(req.params.passengerId);
+      const reservations = await ReservationService.getReservationsByPassengerId(req.params.passengerId);
       res.status(200).json({ success: true, data: reservations });
     } catch (error) {
       throw error;

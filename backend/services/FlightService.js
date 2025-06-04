@@ -12,23 +12,21 @@ class FlightService {
             const query = `
                 SELECT
                     f.id,
-                    f.airline_id,
-                    f.flight_number,
                     f.aircraft_id,
                     f.source_airport_id,
                     f.destination_airport_id,
                     f.departure_time,
                     f.arrival_time,
-                    f.flight_status,
-                    a.name AS airline_name,
-                    ac.aircraft_code AS aircraft_type, -- Assuming aircraft_code in aircrafts V2
+                    al.name AS airline_name,
+                    at.name AS aircraft_type,
                     s_ap.name AS source_airport_name,
                     s_ap.code AS source_airport_code,
                     d_ap.name AS destination_airport_name,
                     d_ap.code AS destination_airport_code
                 FROM flights f
-                JOIN airlines a ON f.airline_id = a.id
-                JOIN aircrafts ac ON f.aircraft_id = ac.id -- Assuming aircrafts table in V2
+                JOIN aircrafts ac ON f.aircraft_id = ac.id
+                JOIN airlines al ON ac.airline_id = al.id
+                JOIN aircraft_types at ON ac.aircraft_type_id = at.id
                 JOIN airports s_ap ON f.source_airport_id = s_ap.id
                 JOIN airports d_ap ON f.destination_airport_id = d_ap.id
                 ORDER BY f.departure_time ASC;
@@ -51,16 +49,17 @@ class FlightService {
         try {
             const query = `
                 SELECT
-                    f.*, -- Select all columns from flights
-                    a.name AS airline_name,
-                    ac.aircraft_code AS aircraft_type, -- Assuming aircraft_code in aircrafts V2
+                    f.*,
+                    al.name AS airline_name,
+                    at.name AS aircraft_type,
                     s_ap.name AS source_airport_name,
                     s_ap.code AS source_airport_code,
                     d_ap.name AS destination_airport_name,
                     d_ap.code AS destination_airport_code
                 FROM flights f
-                JOIN airlines a ON f.airline_id = a.id
-                JOIN aircrafts ac ON f.aircraft_id = ac.id -- Assuming aircrafts table in V2
+                JOIN aircrafts ac ON f.aircraft_id = ac.id
+                JOIN airlines al ON ac.airline_id = al.id
+                JOIN aircraft_types at ON ac.aircraft_type_id = at.id
                 JOIN airports s_ap ON f.source_airport_id = s_ap.id
                 JOIN airports d_ap ON f.destination_airport_id = d_ap.id
                 WHERE f.id = $1;
@@ -85,22 +84,21 @@ class FlightService {
             const query = `
                 SELECT
                     f.id,
-                    f.flight_number,
                     f.departure_time,
                     f.arrival_time,
-                    a.name AS airline_name,
-                    ac.aircraft_code AS aircraft_type, -- Assuming aircraft_code in aircrafts V2
+                    al.name AS airline_name,
+                    at.name AS aircraft_type,
                     s_ap.name AS source_airport_name,
                     d_ap.name AS destination_airport_name
                 FROM flights f
-                JOIN airlines a ON f.airline_id = a.id
-                JOIN aircrafts ac ON f.aircraft_id = ac.id -- Assuming aircrafts table in V2
+                JOIN aircrafts ac ON f.aircraft_id = ac.id
+                JOIN airlines al ON ac.airline_id = al.id
+                JOIN aircraft_types at ON ac.aircraft_type_id = at.id
                 JOIN airports s_ap ON f.source_airport_id = s_ap.id
                 JOIN airports d_ap ON f.destination_airport_id = d_ap.id
                 WHERE f.source_airport_id = $1
                   AND f.destination_airport_id = $2
                   AND DATE(f.departure_time) = $3
-                  AND f.flight_status <> 'Cancelled' -- Exclude cancelled flights
                 ORDER BY f.departure_time ASC;
             `;
             const result = await db.query(query, [from_airport_id, to_airport_id, date]);
@@ -113,7 +111,7 @@ class FlightService {
 
     /**
      * Tạo chuyến bay mới.
-     * @param {Object} data - airline_id, flight_number, aircraft_id, source_airport_id, destination_airport_id, departure_time, arrival_time, flight_status.
+     * @param {Object} data - aircraft_id, source_airport_id, destination_airport_id, departure_time, arrival_time.
      * @returns {Promise<Object>} The created flight.
      */
     async createFlight(data) {
@@ -124,187 +122,62 @@ class FlightService {
             // 1. Insert into flights table
             const insertFlightQuery = `
                 INSERT INTO flights (
-                    id, airline_id, flight_number, aircraft_id, source_airport_id, destination_airport_id,
-                    departure_time, arrival_time, flight_status, created_at, updated_at
+                    id, aircraft_id, source_airport_id, destination_airport_id,
+                    departure_time, arrival_time
                 )
-                VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, NOW(), NOW())
-                RETURNING id, aircraft_id; -- Return flight_id and aircraft_id
+                VALUES ($1, $2, $3, $4, $5, $6)
+                RETURNING id, aircraft_id;
             `;
             const newFlightId = crypto.randomUUID(); // Generate UUID for new flight
             const flightValues = [
                 newFlightId,
-                data.airline_id,
-                data.flight_number,
                 data.aircraft_id,
                 data.source_airport_id,
                 data.destination_airport_id,
                 data.departure_time,
                 data.arrival_time,
-                data.flight_status || 'Scheduled', // Default status
             ];
             const flightResult = await client.query(insertFlightQuery, flightValues);
             const newFlight = flightResult.rows[0];
             const aircraftId = newFlight.aircraft_id;
 
 
-            // 2. Get seat layout from aircraft_types
-            // Need to JOIN aircrafts with aircraft_types to get seat info
-            const getSeatLayoutQuery = `
-                 SELECT
-                     at.economy_seats,
-                     at.business_seats,
-                     at.first_class_seats,
-                     at.premium_economy_seats -- Assuming premium_economy_seats in aircraft_types V2
-                 FROM aircrafts a
-                 JOIN aircraft_types at ON a.aircraft_type_id = at.id
-                 WHERE a.id = $1;
+            // 2. Get seat layout from aircraft_seat_layout
+            const seatLayoutQuery = `
+                SELECT asl.travel_class_id, asl.capacity
+                FROM aircraft_seat_layout asl
+                JOIN aircrafts a ON asl.aircraft_type_id = a.aircraft_type_id
+                WHERE a.id = $1;
             `;
-            const seatLayoutResult = await client.query(getSeatLayoutQuery, [aircraftId]);
+            const seatLayoutResult = await client.query(seatLayoutQuery, [aircraftId]);
             if (seatLayoutResult.rows.length === 0) {
-                throw new Error('Aircraft type not found for selected aircraft');
+                throw new Error('Seat layout not found for selected aircraft');
             }
-            const seatLayout = seatLayoutResult.rows[0];
 
-
-            // 3. Insert into seat_details for each seat
-            const insertSeatDetailsQuery = `
-                 INSERT INTO seat_details (id, flight_id, travel_class_id, seat_number, status, created_at, updated_at)
-                 VALUES ($1, $2, $3, $4, $5, NOW(), NOW());
-            `;
-
-            // Assuming you have a way to map class names ('Economy', 'Business', etc.) to travel_class_ids
-            // You might need to fetch these from the travel_classes table once during application startup or dynamically
-            // For now, let's assume you have a mapping or can query
-            const getTravelClassIdsQuery = `
-                 SELECT id, name FROM travel_classes WHERE name IN ('Economy', 'Business', 'First Class', 'Premium Economy');
-            `;
-            const travelClassesResult = await client.query(getTravelClassIdsQuery);
-            const travelClassMap = travelClassesResult.rows.reduce((map, tc) => {
-                 map[tc.name] = tc.id;
-                 return map;
-            }, {});
-
-            let seatCounter = 1;
             const seatDetailsValues = [];
-
-            // Economy seats
-            const economyClassId = travelClassMap['Economy'];
-            if (seatLayout.economy_seats > 0 && economyClassId) {
-                 seatCounter = 1; // Reset counter for each class for distinct numbering or combine counters
-                 for (let i = 0; i < seatLayout.economy_seats; i++) {
-                      seatDetailsValues.push([
-                         crypto.randomUUID(), // Generate UUID for seat_detail
-                         newFlightId,
-                         economyClassId,
-                         `E${seatCounter++}`, // Example seat numbering (E1, E2, ...)
-                         'Available',
-                      ]);
-                 }
-             }
-
-
-            // Business seats
-             const businessClassId = travelClassMap['Business'];
-             if (seatLayout.business_seats > 0 && businessClassId) {
-                 seatCounter = 1; // Reset counter
-                 for (let i = 0; i < seatLayout.business_seats; i++) {
-                     seatDetailsValues.push([
+            for (const row of seatLayoutResult.rows) {
+                for (let i = 0; i < row.capacity; i++) {
+                    seatDetailsValues.push([
                         crypto.randomUUID(),
                         newFlightId,
-                        businessClassId,
-                         `B${seatCounter++}`, // Example seat numbering (B1, B2, ...)
-                        'Available',
-                     ]);
-                 }
-             }
+                        row.travel_class_id,
+                    ]);
+                }
+            }
 
-             // First Class seats
-             const firstClassId = travelClassMap['First Class'];
-             if (seatLayout.first_class_seats > 0 && firstClassId) {
-                 seatCounter = 1; // Reset counter
-                 for (let i = 0; i < seatLayout.first_class_seats; i++) {
-                     seatDetailsValues.push([
-                        crypto.randomUUID(),
-                        newFlightId,
-                        firstClassId,
-                         `F${seatCounter++}`, // Example seat numbering (F1, F2, ...)
-                        'Available',
-                     ]);
-                 }
-             }
+            if (seatDetailsValues.length > 0) {
+                const insertSeatQuery = `
+                    INSERT INTO seat_details (id, flight_id, travel_class_id)
+                    SELECT unnest($1::uuid[]), unnest($2::uuid[]), unnest($3::uuid[]);
+                `;
+                const seatArrays = [
+                    seatDetailsValues.map(r => r[0]),
+                    seatDetailsValues.map(r => r[1]),
+                    seatDetailsValues.map(r => r[2]),
+                ];
+                await client.query(insertSeatQuery, seatArrays);
+            }
 
-             // Premium Economy seats
-             const premiumEconomyClassId = travelClassMap['Premium Economy'];
-             if (seatLayout.premium_economy_seats > 0 && premiumEconomyClassId) {
-                  seatCounter = 1; // Reset counter
-                  for (let i = 0; i < seatLayout.premium_economy_seats; i++) {
-                      seatDetailsValues.push([
-                         crypto.randomUUID(),
-                         newFlightId,
-                         premiumEconomyClassId,
-                          `P${seatCounter++}`, // Example seat numbering (P1, P2, ...)
-                         'Available',
-                      ]);
-                  }
-              }
-
-
-            // Use unnest for bulk insert (more efficient)
-             if (seatDetailsValues.length > 0) {
-                  const unnestQuery = `
-                      INSERT INTO seat_details (id, flight_id, travel_class_id, seat_number, status, created_at, updated_at)
-                      SELECT unnest($1::uuid[]), unnest($2::uuid[]), unnest($3::uuid[]), unnest($4::text[]), unnest($5::seat_status[]), NOW(), NOW();
-                  `;
-                  const unnestValues = [
-                      seatDetailsValues.map(row => row[0]), // ids
-                      seatDetailsValues.map(row => row[1]), // flight_ids (all same newFlightId)
-                      seatDetailsValues.map(row => row[2]), // travel_class_ids
-                      seatDetailsValues.map(row => row[3]), // seat_numbers
-                      seatDetailsValues.map(row => row[4]), // statuses (all 'Available')
-                  ];
-                  await client.query(unnestQuery, unnestValues);
-              }
-
-
-            // 4. Insert into flight_costs for each travel class
-            // Need to get default prices for each class - maybe from aircraft_types or a separate config?
-            // For now, let's assume base prices are provided in data or default to 0
-            const insertFlightCostsQuery = `
-                 INSERT INTO flight_costs (id, flight_id, travel_class_id, base_price, effective_from, created_at, updated_at)
-                 VALUES ($1, $2, $3, $4, NOW(), NOW());
-            `;
-            const flightCostsValues = [];
-            // Assuming base prices are provided in data object, e.g., data.basePrices = { 'Economy': 100, 'Business': 200, ... }
-            const basePrices = data.basePrices || {};
-
-
-             if (economyClassId) {
-                 flightCostsValues.push([crypto.randomUUID(), newFlightId, economyClassId, basePrices['Economy'] || 0]);
-             }
-             if (businessClassId) {
-                  flightCostsValues.push([crypto.randomUUID(), newFlightId, businessClassId, basePrices['Business'] || 0]);
-              }
-              if (firstClassId) {
-                  flightCostsValues.push([crypto.randomUUID(), newFlightId, firstClassId, basePrices['First Class'] || 0]);
-               }
-              if (premiumEconomyClassId) {
-                  flightCostsValues.push([crypto.randomUUID(), newFlightId, premiumEconomyClassId, basePrices['Premium Economy'] || 0]);
-               }
-
-
-            if (flightCostsValues.length > 0) {
-                 const unnestCostsQuery = `
-                     INSERT INTO flight_costs (id, flight_id, travel_class_id, base_price, effective_from, created_at, updated_at)
-                     SELECT unnest($1::uuid[]), unnest($2::uuid[]), unnest($3::uuid[]), unnest($4::numeric[]), NOW(), NOW();
-                 `;
-                 const unnestCostsValues = [
-                     flightCostsValues.map(row => row[0]), // ids
-                     flightCostsValues.map(row => row[1]), // flight_ids (all same newFlightId)
-                     flightCostsValues.map(row => row[2]), // travel_class_ids
-                     flightCostsValues.map(row => row[3]), // base_prices
-                 ];
-                 await client.query(unnestCostsQuery, unnestCostsValues);
-             }
 
 
             await client.query('COMMIT');
@@ -341,9 +214,9 @@ class FlightService {
 
            // Only allow updating certain fields
            const allowedFields = [
-             'airline_id', 'flight_number', 'aircraft_id',
+             'aircraft_id',
              'source_airport_id', 'destination_airport_id',
-             'departure_time', 'arrival_time', 'flight_status'
+             'departure_time', 'arrival_time'
            ];
 
            allowedFields.forEach(field => {
@@ -361,7 +234,7 @@ class FlightService {
 
            const updateQuery = `
                UPDATE flights
-               SET ${fields.join(', ')}, updated_at = NOW()
+               SET ${fields.join(', ')}
                WHERE id = $${paramIndex}
                RETURNING *;
            `;
@@ -402,9 +275,7 @@ class FlightService {
             const updateFlightQuery = `
                 UPDATE flights
                 SET departure_time = $1,
-                    arrival_time = $2,
-                    flight_status = 'Delayed',
-                    updated_at = NOW()
+                    arrival_time = $2
                 WHERE id = $3
                 RETURNING *;
             `;
@@ -440,32 +311,15 @@ class FlightService {
         try {
             await client.query('BEGIN');
 
-            // 1. Đổi trạng thái chuyến bay
-            const flightRes = await client.query(
-                `UPDATE flights
-                 SET flight_status = 'Cancelled', updated_at = NOW()
-                 WHERE id = $1
-                 RETURNING *`,
-                [flightId]
-            );
+            // Xoá các ghế liên quan và chuyến bay
+            await client.query('DELETE FROM seat_details WHERE flight_id = $1', [flightId]);
+            const flightRes = await client.query('DELETE FROM flights WHERE id = $1 RETURNING *', [flightId]);
             if (flightRes.rows.length === 0) throw new Error('Flight not found');
             const cancelledFlight = flightRes.rows[0];
 
 
-            // 2. Hủy các đặt chỗ/chỗ ngồi liên quan
-            // In V2, need to update status in reservations or seat_details.
-            // Which table to update depends on where the 'cancelled' status for a booking lives.
-            // Assuming status update on seat_details to 'Cancelled' and maybe update reservation status if all seats are cancelled.
-            const cancelSeatDetailsQuery = `
-                 UPDATE seat_details
-                 SET status = 'Cancelled', updated_at = NOW()
-                 WHERE flight_id = $1 AND status <> 'Cancelled'; -- Only cancel if not already cancelled
-            `;
-            await client.query(cancelSeatDetailsQuery, [flightId]);
-
-
             await client.query('COMMIT');
-            return this.getFlightById(flightId); // Return updated flight with full details
+            return cancelledFlight;
         } catch (err) {
             await client.query('ROLLBACK');
             console.error(`❌ Error cancelling flight ${flightId}:`, err.message);
@@ -495,24 +349,6 @@ class FlightService {
                 throw new Error('Cannot delete: flight has related seat details');
             }
 
-            // Check for related flight_costs (optional, could cascade on delete)
-             const flightCostsRef = await client.query(
-                 'SELECT 1 FROM flight_costs WHERE flight_id = $1 LIMIT 1',
-                 [id]
-             );
-            if (flightCostsRef.rows.length) {
-                // Depending on foreign key constraints, you might need to delete flight_costs first
-                // Or if CASCADE is set, this check is just informative
-                 console.warn(`Warning: Flight ${id} has related flight_costs records.`);
-                 // Option 1: Delete related costs if not cascaded
-                 // await client.query('DELETE FROM flight_costs WHERE flight_id = $1', [id]);
-                 // Option 2: Trust CASCADE or enforce check
-                 // throw new Error('Cannot delete: flight has related flight_costs');
-                 // Assuming cascade delete is NOT set, we'll delete costs first
-                 await client.query('DELETE FROM flight_costs WHERE flight_id = $1', [id]);
-            }
-
-
             // Now delete the flight
             const deleteResult = await client.query('DELETE FROM flights WHERE id = $1 RETURNING id', [id]);
 
@@ -540,21 +376,11 @@ class FlightService {
         try {
             const query = `
                 SELECT
-                    p.id AS passenger_id,
-                    p.first_name,
-                    p.last_name,
-                    p.email,
-                    p.identity_number,
                     sd.id AS seat_detail_id,
-                    sd.seat_number,
-                    tc.name AS travel_class_name,
-                    sd.status AS seat_status,
-                    r.reservation_code -- Optional: include reservation code
+                    tc.name AS travel_class_name
                 FROM seat_details sd
-                JOIN passengers p ON sd.passenger_id = p.id
                 JOIN travel_classes tc ON sd.travel_class_id = tc.id
-                JOIN reservations r ON sd.reservation_id = r.id -- Assuming seat_details links to reservations
-                WHERE sd.flight_id = $1 AND sd.status <> 'Available'; -- Only get booked/cancelled seats
+                WHERE sd.flight_id = $1;
             `;
             const result = await db.query(query, [flightId]);
             return result.rows;

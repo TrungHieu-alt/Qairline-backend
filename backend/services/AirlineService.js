@@ -5,7 +5,7 @@ class AirlineService {
 
   /**
    * Lấy danh sách hãng hàng không với tùy chọn phân trang và lọc.
-   * @param {Object} options - Tùy chọn: page, limit, nameKeyword, iataCode, icaoCode, ...
+  * @param {Object} options - Tùy chọn: page, limit, nameKeyword, code, ...
    * @returns {Promise<Object>} - { data: [], total: number }
    */
   async getAirlines(options = {}) {
@@ -13,13 +13,12 @@ class AirlineService {
       page = 1,
       limit = 10,
       nameKeyword,   // New filter: keyword in name
-      iataCode,      // New filter: exact match for iata_code
-      icaoCode       // New filter: exact match for icao_code
+      code           // New filter: exact match for code
     } = options;
     const offset = (page - 1) * limit;
 
     let query = `
-      SELECT id, name, iata_code, icao_code, created_at, updated_at
+      SELECT id, name, code, created_at, updated_at
       FROM airlines
       WHERE 1=1 -- Start with a true condition to easily append others
     `;
@@ -43,21 +42,12 @@ class AirlineService {
         paramIndex++;
     }
 
-     // Filter by iata_code (exact match)
-    if (iataCode) {
-        query += ` AND iata_code = $${paramIndex}`;
-        countQuery += ` AND iata_code = $${paramIndex}`;
-        filterValues.push(iataCode);
-        countFilterValues.push(iataCode);
-        paramIndex++;
-    }
-
-     // Filter by icao_code (exact match)
-    if (icaoCode) {
-        query += ` AND icao_code = $${paramIndex}`;
-        countQuery += ` AND icao_code = $${paramIndex}`;
-        filterValues.push(icaoCode);
-        countFilterValues.push(icaoCode);
+     // Filter by code (exact match)
+    if (code) {
+        query += ` AND code = $${paramIndex}`;
+        countQuery += ` AND code = $${paramIndex}`;
+        filterValues.push(code);
+        countFilterValues.push(code);
         paramIndex++;
     }
 
@@ -95,7 +85,7 @@ class AirlineService {
    async getAirlineById(id) {
        try {
            const query = `
-                SELECT id, name, iata_code, icao_code, created_at, updated_at
+                SELECT id, name, code, created_at, updated_at
                 FROM airlines
                 WHERE id = $1;
            `;
@@ -112,7 +102,7 @@ class AirlineService {
 
   /**
    * Tạo hãng hàng không mới.
-   * @param {Object} data - name, iata_code (optional), icao_code (optional).
+   * @param {Object} data - name, code.
    * @returns {Promise<Object>} Hãng hàng không đã tạo.
    */
   async createAirline(data) {
@@ -121,17 +111,16 @@ class AirlineService {
       await client.query('BEGIN');
 
       // TODO: Add input validation (e.g., name is required)
-      // TODO: Validate uniqueness of iata_code and icao_code if provided
+      // TODO: Validate uniqueness of code if provided
 
       const query = `
-        INSERT INTO airlines (name, iata_code, icao_code)
-        VALUES ($1, $2, $3)
-        RETURNING id, name, iata_code, icao_code, created_at, updated_at;
+        INSERT INTO airlines (name, code)
+        VALUES ($1, $2)
+        RETURNING id, name, code, created_at, updated_at;
       `;
       const values = [
         data.name,
-        data.iata_code,
-        data.icao_code
+        data.code
       ];
       const result = await client.query(query, values);
 
@@ -149,7 +138,7 @@ class AirlineService {
   /**
    * Cập nhật thông tin hãng hàng không.
    * @param {string} id - UUID hãng hàng không.
-   * @param {Object} data - name, iata_code (optional), icao_code (optional).
+   * @param {Object} data - name, code.
    * @returns {Promise<Object>} Hãng hàng không đã cập nhật.
    */
   async updateAirline(id, data) {
@@ -158,18 +147,17 @@ class AirlineService {
       await client.query('BEGIN');
 
       // TODO: Add input validation
-      // TODO: Validate uniqueness of iata_code and icao_code if they are being updated
+      // TODO: Validate uniqueness of code if it is being updated
 
       const query = `
         UPDATE airlines
-        SET name = $1, iata_code = $2, icao_code = $3, updated_at = NOW()
-        WHERE id = $4
-        RETURNING id, name, iata_code, icao_code, created_at, updated_at;
+        SET name = $1, code = $2, updated_at = NOW()
+        WHERE id = $3
+        RETURNING id, name, code, created_at, updated_at;
       `;
       const values = [
         data.name,
-        data.iata_code,
-        data.icao_code,
+        data.code,
         id // UUID id
       ];
       const result = await client.query(query, values);

@@ -59,7 +59,6 @@ class FlightController {
   } catch (err) {
     next(err);
   }
-};
 
   async deleteFlight(req, res, next) {
   try {
@@ -68,7 +67,6 @@ class FlightController {
   } catch (err) {
     next(err);
   }
-};
 }
 
 module.exports = new FlightController();

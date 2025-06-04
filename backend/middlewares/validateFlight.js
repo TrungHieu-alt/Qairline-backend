@@ -2,20 +2,17 @@ const { body, param } = require('express-validator');
 const { handleValidationErrors } = require('../middlewares/validateUtils');
 
 exports.validateSearchFlights = [
-  body('legs')
-    .isArray({ min: 1 })
-    .withMessage('Danh sách legs phải là một mảng không rỗng'),
-  body('legs.*.from_airport_id')
+  body('from_airport_id')
     .notEmpty()
     .withMessage('ID sân bay đi là bắt buộc')
     .isUUID()
     .withMessage('ID sân bay đi không hợp lệ'),
-  body('legs.*.to_airport_id')
+  body('to_airport_id')
     .notEmpty()
     .withMessage('ID sân bay đến là bắt buộc')
     .isUUID()
     .withMessage('ID sân bay đến không hợp lệ'),
-  body('legs.*.date')
+  body('date')
     .isISO8601()
     .toDate()
     .withMessage('Ngày không hợp lệ')

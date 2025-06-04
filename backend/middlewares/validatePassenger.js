@@ -1,4 +1,4 @@
-const { body, param, validationResult } = require('express-validator');
+const { body, param } = require('express-validator');
 const { handleValidationErrors } = require('../middlewares/validateUtils');
 
 exports.validateCreatePassenger = [
@@ -21,15 +21,6 @@ exports.validateRegister = [
   // Removed validations for first_name, last_name, username as they are handled during passenger creation
 ];
 
-// Middleware xử lý lỗi validation
-exports.handleValidationErrors = (req, res, next) => {
-  const errors = validationResult(req);
-  if (!errors.isEmpty()) {
-    console.log('❌ Validation Errors:', errors.array()); // Thêm log
-    return res.status(400).json({ success: false, error: errors.array()[0].msg });
-  }
-  next();
-};
 
 exports.validateUpdatePassenger = [
   param('id').isUUID().withMessage('ID hành khách không hợp lệ'),
@@ -51,12 +42,3 @@ exports.validateGetPassengerById = [
 exports.validateDeletePassenger = [
   param('id').isUUID().withMessage('ID hành khách không hợp lệ')
 ];
-// Middleware xử lý lỗi validation
-exports.handleValidationErrors = (req, res, next) => {
-  const errors = validationResult(req);
-  if (!errors.isEmpty()) {
-    console.log('❌ Validation Errors:', errors.array()); // Thêm log
-    return res.status(400).json({ success: false, error: errors.array()[0].msg });
-  }
-  next();
-};

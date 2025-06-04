@@ -1,4 +1,4 @@
-const { body, param, validationResult } = require('express-validator');
+const { body, param } = require('express-validator');
 const { handleValidationErrors } = require('../middlewares/validateUtils');
 
 exports.validateCreateServiceOffering = [
@@ -65,13 +65,3 @@ exports.validateDeleteServiceOffering = [
     .isUUID().withMessage('Invalid service_id UUID format in param'),
 ];
 
-
-// Middleware xử lý lỗi validation (assuming it will be moved later)
-exports.handleValidationErrors = (req, res, next) => {
-  const errors = validationResult(req);
-  if (!errors.isEmpty()) {
-    console.error('❌ Validation Errors:', errors.array()); // Use error for errors
-    return res.status(400).json({ success: false, error: errors.array().map(err => err.msg).join(', ') }); // Return all error messages
-  }
-  next();
-};

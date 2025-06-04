@@ -1,4 +1,4 @@
-const { body, param, validationResult } = require('express-validator');
+const { body, param } = require('express-validator');
 const { handleValidationErrors } = require('../middlewares/validateUtils');
 
 exports.validateCreateAirline = [
@@ -26,14 +26,3 @@ exports.validateGetAirlineById = [
 exports.validateDeleteAirline = [
   param('id').isUUID().withMessage('ID hãng hàng không không hợp lệ')
 ];
-
-// Middleware xử lý lỗi validation
-exports.handleValidationErrors = (req, res, next) => {
-  const errors = validationResult(req);
-  if (!errors.isEmpty()) {
-    console.error('❌ Validation Errors:', errors.array()); // Sử dụng console.error cho lỗi
-    // Chỉ trả về thông báo lỗi đầu tiên để đơn giản
-    return res.status(400).json({ success: false, error: errors.array()[0].msg });
-  }
-  next();
-};

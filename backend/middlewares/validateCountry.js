@@ -1,4 +1,4 @@
-const { body, param, validationResult } = require('express-validator');
+const { body, param } = require('express-validator');
 const { handleValidationErrors } = require('../middlewares/validateUtils');
 
 exports.validateCreateCountry = [
@@ -33,15 +33,6 @@ exports.validateDeleteCountry = [
   param('id').isUUID().withMessage('Country ID is invalid'),
 ];
 
-// Middleware xử lý lỗi validation
-exports.handleValidationErrors = (req, res, next) => {
-  const errors = validationResult(req);
-  if (!errors.isEmpty()) {
-    console.log('❌ Validation Errors:', errors.array()); // Thêm log
-    return res.status(400).json({ success: false, error: errors.array()[0].msg });
-  }
-  next();
-};
 
 exports.validateGetAllCountries = [
   // Add validation rules for query parameters here if needed

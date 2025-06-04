@@ -5,31 +5,31 @@ class AnnouncementService {
 
   /**
    * Lấy danh sách thông báo còn hiệu lực với tùy chọn phân trang, tìm kiếm và lọc.
-   * @param {Object} options - Tùy chọn: page, limit, flightId, type, titleKeyword, startDate, endDate, ...
+   * @param {Object} options - Tùy chọn: page, limit, status, type, titleKeyword, startDate, endDate, ...
    * @returns {Promise<Object>} - { data: [], total: number }
    */
   async getAnnouncements(options = {}) {
     const {
       page = 1,
       limit = 10,
-      flightId,
+      status,
       type,
       titleKeyword, // New filter: keyword in title
-      startDate,    // New filter: published_date >= startDate
-      endDate       // New filter: published_date <= endDate (or expiry_date?)
+      startDate,    // New filter: start_date >= startDate
+      endDate       // New filter: start_date <= endDate
     } = options; // Default pagination
     const offset = (page - 1) * limit;
 
     let query = `
-      SELECT id, title, content, type, published_date, expiry_date, created_by, flight_id, created_at, updated_at
+      SELECT id, title, content, type, status, start_date, end_date, priority, created_at, updated_at
       FROM announcements
-      WHERE expiry_date > NOW()
+      WHERE (end_date IS NULL OR end_date > NOW())
     `;
 
     const countQuery = `
       SELECT COUNT(*)
       FROM announcements
-      WHERE expiry_date > NOW()
+      WHERE (end_date IS NULL OR end_date > NOW())
     `;
 
     const filterValues = [];
@@ -37,10 +37,10 @@ class AnnouncementService {
     let filterConditions = '';
     let paramIndex = 1;
 
-    if (flightId) {
-        filterConditions += ` AND flight_id = $${paramIndex}`;
-        filterValues.push(flightId);
-        countFilterValues.push(flightId);
+    if (status) {
+        filterConditions += ` AND status = $${paramIndex}`;
+        filterValues.push(status);
+        countFilterValues.push(status);
         paramIndex++;
     }
 
@@ -59,9 +59,9 @@ class AnnouncementService {
         paramIndex++;
     }
 
-    // New filter: filter by published_date range
+    // New filter: filter by start_date range
     if (startDate) {
-        filterConditions += ` AND published_date >= $${paramIndex}`;
+        filterConditions += ` AND start_date >= $${paramIndex}`;
         // Ensure startDate is a valid date object or string parseable by the DB driver
         filterValues.push(startDate);
         countFilterValues.push(startDate);
@@ -69,23 +69,20 @@ class AnnouncementService {
     }
 
     if (endDate) {
-        // Decide whether to filter by published_date or expiry_date range
-        // For "lọc theo ngày", maybe filter by published_date or expiry_date?
-        // Let's assume filtering by published_date range for now.
-        filterConditions += ` AND published_date <= $${paramIndex}`;
+        filterConditions += ` AND start_date <= $${paramIndex}`;
          // Ensure endDate is a valid date object or string parseable by the DB driver
         filterValues.push(endDate);
         countFilterValues.push(endDate);
         paramIndex++;
     }
-    // TODO: Consider filtering by expiry_date range as well if needed.
+    // TODO: Consider filtering by end_date range as well if needed.
 
 
     query += filterConditions;
     countQuery += filterConditions;
 
     query += `
-      ORDER BY published_date DESC
+      ORDER BY start_date DESC
       LIMIT $${paramIndex} OFFSET $${paramIndex + 1};
     `;
     filterValues.push(limit);
@@ -117,7 +114,7 @@ class AnnouncementService {
    async getById(id) {
        try {
            const query = `
-                SELECT id, title, content, type, published_date, expiry_date, created_by, flight_id, created_at, updated_at
+                SELECT id, title, content, type, status, start_date, end_date, priority, created_at, updated_at
                 FROM announcements
                 WHERE id = $1;
            `;
@@ -136,7 +133,7 @@ class AnnouncementService {
 
   /**
    * Tạo thông báo mới.
-   * @param {Object} data - title, content, type, expiry_date, created_by, optional flight_id.
+   * @param {Object} data - title, content, type, status, start_date, end_date, priority.
    * @returns {Promise<Object>} Thông báo đã tạo.
    */
   async create(data) {
@@ -145,17 +142,18 @@ class AnnouncementService {
       await client.query('BEGIN');
 
       const query = `
-        INSERT INTO announcements (title, content, type, published_date, expiry_date, created_by, flight_id)
-        VALUES ($1, $2, $3, NOW(), $4, $5, $6)
-        RETURNING id, title, content, type, published_date, expiry_date, created_by, flight_id, created_at, updated_at;
+        INSERT INTO announcements (title, content, type, status, start_date, end_date, priority)
+        VALUES ($1, $2, $3, $4, $5, $6, $7)
+        RETURNING id, title, content, type, status, start_date, end_date, priority, created_at, updated_at;
       `;
       const values = [
         data.title,
         data.content,
         data.type,
-        data.expiry_date,
-        data.created_by, // Assuming created_by is passed as UUID
-        data.flight_id // Optional flight_id
+        data.status,
+        data.start_date,
+        data.end_date,
+        data.priority
       ];
       const result = await client.query(query, values);
 
@@ -175,7 +173,7 @@ class AnnouncementService {
   /**
    * Cập nhật thông báo.
    * @param {string} id - UUID thông báo.
-   * @param {Object} data - title, content, type, expiry_date, created_by, optional flight_id.
+   * @param {Object} data - title, content, type, status, start_date, end_date, priority.
    * @returns {Promise<Object>} Thông báo đã cập nhật.
    */
   async update(id, data) {
@@ -185,17 +183,18 @@ class AnnouncementService {
 
       const query = `
         UPDATE announcements
-        SET title = $1, content = $2, type = $3, expiry_date = $4, created_by = $5, flight_id = $6, updated_at = NOW()
-        WHERE id = $7
-        RETURNING id, title, content, type, published_date, expiry_date, created_by, flight_id, created_at, updated_at;
+        SET title = $1, content = $2, type = $3, status = $4, start_date = $5, end_date = $6, priority = $7, updated_at = NOW()
+        WHERE id = $8
+        RETURNING id, title, content, type, status, start_date, end_date, priority, created_at, updated_at;
       `;
       const values = [
         data.title,
         data.content,
         data.type,
-        data.expiry_date,
-        data.created_by, // Assuming created_by is passed as UUID
-        data.flight_id, // Optional flight_id
+        data.status,
+        data.start_date,
+        data.end_date,
+        data.priority,
         id // UUID id
       ];
       const result = await client.query(query, values);
@@ -229,7 +228,7 @@ class AnnouncementService {
       const query = `
         DELETE FROM announcements
         WHERE id = $1
-        RETURNING id, title, content, type, published_date, expiry_date, created_by, flight_id, created_at, updated_at;
+        RETURNING id, title, content, type, status, start_date, end_date, priority, created_at, updated_at;
       `;
       const result = await client.query(query, [id]); // UUID id
 

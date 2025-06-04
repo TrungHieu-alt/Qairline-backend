@@ -46,8 +46,8 @@ class ServiceOfferingController {
 
   async getAll(req, res, next) {
     try {
-      const serviceOfferings = await ServiceOfferingService.getAll();
-      res.status(200).json({ success: true, message: 'Service Offerings fetched successfully', data: await ServiceOfferingService.getAllServiceOfferings() });
+      const serviceOfferings = await ServiceOfferingService.getServiceOfferings(req.query);
+      res.status(200).json({ success: true, message: 'Service Offerings fetched successfully', data: serviceOfferings });
     } catch (error) {
       throw error;
     }

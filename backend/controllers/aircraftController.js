@@ -1,48 +1,55 @@
 const AircraftService = require('../services/AircraftService');
 
-exports.createAircraft = async (req, res) => {
-  try {
-      const aircraft = await AircraftService.create(req.body);
+class AircraftController {
+  async createAircraft(req, res, next) {
+    try {
+      const aircraft = await AircraftService.createAircraft(req.body);
       res.status(201).json({ success: true, data: aircraft });
     } catch (error) {
-      res.status(400).json({ success: false, error: error.message });
+      throw error;
+ // Pass to error handling middleware
     }
-};
-
-exports.updateAircraft = async (req, res) => {
-  try {
-    const aircraft = await AircraftService.updateAircraft(req.params.id, req.body, req.user);
-    res.json({ success: true, data: aircraft });
-  } catch (err) {
-    res.status(400).json({ success: false, message: err.message });
   }
-};
 
-exports.getAllAircrafts = async (req, res) => {
-  try {
-      const aircrafts = await AircraftService.getAllAircrafts();
+  async updateAircraft(req, res, next) {
+    try {
+      const aircraft = await AircraftService.updateAircraft(req.params.id, req.body);
+      res.json({ success: true, data: aircraft });
+    } catch (err) {
+ next(err); // Pass to error handling middleware
+    }
+  }
+
+  async getAllAircrafts(req, res, next) {
+    try {
+      const aircrafts = await AircraftService.getAircrafts(req.query);
       res.set('Cache-Control', 'no-store');
       res.json({ success: true, data: aircrafts });
     } catch (error) {
-      res.status(500).json({ success: false, error: error.message });
+ next(error); // Pass to error handling middleware
     }
-};
-
-exports.getAircraftById = async (req, res) => {
-  try {
-    const aircraft = await AircraftService.getAircraftById(req.params.id);
-    if (!aircraft) return res.status(404).json({ success: false, message: 'Aircraft not found' });
-    res.json({ success: true, data: aircraft });
-  } catch (err) {
-    res.status(400).json({ success: false, message: err.message });
   }
-};
 
-exports.deleteAircraft = async (req, res) => {
-  try {
-    const result = await AircraftService.deleteAircraft(req.params.id);
-    res.json({ success: true, data: result });
-  } catch (err) {
-    res.status(400).json({ success: false, message: err.message });
+  async getAircraftById(req, res, next) {
+    try {
+      const aircraft = await AircraftService.getAircraftById(req.params.id);
+      if (!aircraft) {
+        return res.status(404).json({ success: false, message: 'Aircraft not found' });
+      }
+      res.json({ success: true, data: aircraft });
+    } catch (err) {
+ next(err); // Pass to error handling middleware
+    }
   }
-};
+
+  async deleteAircraft(req, res, next) {
+    try {
+      const result = await AircraftService.deleteAircraft(req.params.id);
+ res.json({ success: true, data: result });
+  } catch (err) {
+    throw err;
+  }
+  }
+}
+
+module.exports = new AircraftController();

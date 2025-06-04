@@ -1,52 +1,40 @@
 const { body, param } = require('express-validator');
 
 exports.validateCreateAircraft = [
-  body('airline_id').isUUID().withMessage('ID hãng hàng không không hợp lệ'),
-  body('aircraft_type').notEmpty().withMessage('Loại máy bay là bắt buộc'),
-  body('total_first_class_seats')
-    .isInt({ min: 0 })
-    .withMessage('Số ghế hạng nhất phải là số không âm'),
-  body('total_business_class_seats')
-    .isInt({ min: 0 })
-    .withMessage('Số ghế hạng thương gia phải là số không âm'),
-  body('total_economy_class_seats')
-    .isInt({ min: 0 })
-    .withMessage('Số ghế hạng phổ thông phải là số không âm'),
-  body('status')
-    .notEmpty()
-    .withMessage('Trạng thái là bắt buộc'),
-  body('aircraft_code')
-    .notEmpty()
-    .withMessage('Mã máy bay là bắt buộc'),
-  body('manufacturer')
-    .notEmpty()
-    .withMessage('Hãng sản xuất là bắt buộc')
+  body('airline_id')
+    .isUUID().withMessage('ID hãng hàng không không hợp lệ')
+    .notEmpty().withMessage('ID hãng hàng không là bắt buộc'),
+  body('aircraft_type_id')
+    .isUUID().withMessage('ID loại máy bay không hợp lệ')
+    .notEmpty().withMessage('ID loại máy bay là bắt buộc'),
+  body('registration_number')
+    .notEmpty().withMessage('Số đăng ký là bắt buộc')
+    .isString().withMessage('Số đăng ký phải là chuỗi'),
+  body('manufacturing_date')
+    .isISO8601().toDate().withMessage('Ngày sản xuất không hợp lệ')
+    .notEmpty().withMessage('Ngày sản xuất là bắt buộc'),
 ];
 
 exports.validateUpdateAircraft = [
   param('id').isUUID().withMessage('ID máy bay không hợp lệ'),
-  body('airline_id').isUUID().withMessage('ID hãng hàng không không hợp lệ'),
-  body('aircraft_type').notEmpty().withMessage('Loại máy bay là bắt buộc'),
-  body('total_first_class_seats')
-    .isInt({ min: 0 })
-    .withMessage('Số ghế hạng nhất phải là số không âm'),
-  body('total_business_class_seats')
-    .isInt({ min: 0 })
-    .withMessage('Số ghế hạng thương gia phải là số không âm'),
-  body('total_economy_class_seats')
-    .isInt({ min: 0 })
-    .withMessage('Số ghế hạng phổ thông phải là số không âm'),
-  body('status')
-    .notEmpty()
-    .withMessage('Trạng thái là bắt buộc'),
-  body('aircraft_code')
-    .notEmpty()
-    .withMessage('Mã máy bay là bắt buộc'),
-  body('manufacturer')
-    .notEmpty()
-    .withMessage('Hãng sản xuất là bắt buộc')
+  body('airline_id')
+    .optional()
+    .isUUID().withMessage('ID hãng hàng không không hợp lệ'),
+  body('aircraft_type_id')
+    .optional()
+    .isUUID().withMessage('ID loại máy bay không hợp lệ'),
+  body('registration_number')
+    .optional()
+    .isString().withMessage('Số đăng ký phải là chuỗi'),
+  body('manufacturing_date')
+    .optional()
+    .isISO8601().toDate().withMessage('Ngày sản xuất không hợp lệ'),
 ];
 
 exports.validateGetAircraftById = [
+  param('id').isUUID().withMessage('ID máy bay không hợp lệ')
+];
+
+exports.validateDeleteAircraft = [
   param('id').isUUID().withMessage('ID máy bay không hợp lệ')
 ];

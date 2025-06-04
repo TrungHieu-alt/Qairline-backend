@@ -1,13 +1,18 @@
 const { body, param } = require('express-validator');
+const { handleValidationErrors } = require('../middlewares/validateUtils');
 
 exports.validateSearchFlights = [
   body('legs')
     .isArray({ min: 1 })
     .withMessage('Danh sách legs phải là một mảng không rỗng'),
   body('legs.*.from_airport_id')
+    .notEmpty()
+    .withMessage('ID sân bay đi là bắt buộc')
     .isUUID()
     .withMessage('ID sân bay đi không hợp lệ'),
   body('legs.*.to_airport_id')
+    .notEmpty()
+    .withMessage('ID sân bay đến là bắt buộc')
     .isUUID()
     .withMessage('ID sân bay đến không hợp lệ'),
   body('legs.*.date')
@@ -73,4 +78,38 @@ exports.validateCreateFlight = [
     .optional()
     .isIn(['Scheduled', 'Delayed', 'Cancelled', 'Completed'])
     .withMessage('Trạng thái chuyến bay không hợp lệ')
+];
+
+exports.validateUpdateFlight = [
+  param('id').isUUID().withMessage('ID chuyến bay không hợp lệ'),
+  body('aircraft_id')
+    .optional()
+    .isUUID()
+    .withMessage('ID máy bay không hợp lệ'),
+  body('source_airport_id')
+    .optional()
+    .isUUID()
+    .withMessage('ID sân bay đi không hợp lệ'),
+  body('destination_airport_id')
+    .optional()
+    .isUUID()
+    .withMessage('ID sân bay đến không hợp lệ'),
+  body('departure_time')
+    .optional()
+    .isISO8601()
+    .toDate()
+    .withMessage('Thời gian khởi hành không hợp lệ'),
+  body('arrival_time').optional().isISO8601().toDate().withMessage('Thời gian đến không hợp lệ'),
+];
+
+exports.validateGetFlightById = [
+  param('id').isUUID().withMessage('ID chuyến bay không hợp lệ')
+];
+
+exports.validateDeleteFlight = [
+  param('id').isUUID().withMessage('ID chuyến bay không hợp lệ')
+];
+
+exports.validateCancelFlight = [
+  param('id').isUUID().withMessage('ID chuyến bay không hợp lệ')
 ];

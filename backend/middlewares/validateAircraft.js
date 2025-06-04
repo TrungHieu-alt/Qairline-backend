@@ -10,9 +10,6 @@ exports.validateCreateAircraft = [
   body('registration_number')
     .notEmpty().withMessage('Số đăng ký là bắt buộc')
     .isString().withMessage('Số đăng ký phải là chuỗi'),
-  body('manufacturing_date')
-    .isISO8601().toDate().withMessage('Ngày sản xuất không hợp lệ')
-    .notEmpty().withMessage('Ngày sản xuất là bắt buộc'),
 ];
 
 exports.validateUpdateAircraft = [
@@ -26,9 +23,6 @@ exports.validateUpdateAircraft = [
   body('registration_number')
     .optional()
     .isString().withMessage('Số đăng ký phải là chuỗi'),
-  body('manufacturing_date')
-    .optional()
-    .isISO8601().toDate().withMessage('Ngày sản xuất không hợp lệ'),
 ];
 
 exports.validateGetAircraftById = [

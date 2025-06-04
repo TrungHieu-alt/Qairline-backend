@@ -33,7 +33,7 @@ class CityController {
 
   async update(req, res, next) {
     try {
-      const city = await CityService.update(req.params.id, req.body);
+      const city = await CityService.updateCity(req.params.id, req.body);
       res.json({ success: true, data: city }); // Assuming service returns updated city data
     } catch (error) {
       throw error;
@@ -42,7 +42,7 @@ class CityController {
 
   async delete(req, res, next) {
     try {
-      const result = await CityService.delete(req.params.id);
+      const result = await CityService.deleteCity(req.params.id);
       res.json({ success: true, data: result }); // Assuming service returns success indicator/deleted id
     } catch (error) {
       throw error;

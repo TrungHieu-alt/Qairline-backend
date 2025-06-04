@@ -4,7 +4,7 @@ const ServiceOfferingService = require('../services/ServiceOfferingService');
 class ServiceOfferingController {
   async create(req, res, next) {
     try {
-      const serviceOffering = await ServiceOfferingService.create(req.body);
+      const serviceOffering = await ServiceOfferingService.createServiceOffering(req.body);
       res.status(201).json({ success: true, data: serviceOffering });
     } catch (error) {
       throw error;
@@ -14,7 +14,7 @@ class ServiceOfferingController {
   async getById(req, res, next) {
     try {
       const { travelClassId, serviceId } = req.params;
-      const serviceOffering = await ServiceOfferingService.getById(travelClassId, serviceId);
+      const serviceOffering = await ServiceOfferingService.getServiceOfferingById(travelClassId, serviceId);
       if (!serviceOffering) {
         res.status(404).json({ success: false, message: 'Service Offering not found' });
       } else {
@@ -28,7 +28,7 @@ class ServiceOfferingController {
   async update(req, res, next) {
     try {
       const { travelClassId, serviceId } = req.params;
-      const serviceOffering = await ServiceOfferingService.update(travelClassId, serviceId, req.body);
+      const serviceOffering = await ServiceOfferingService.updateServiceOffering(travelClassId, serviceId, req.body);
       res.status(200).json({ success: true, data: serviceOffering });
     } catch (error) {
       throw error;
@@ -38,7 +38,7 @@ class ServiceOfferingController {
   async delete(req, res, next) {
     try {
       const result = await ServiceOfferingService.delete(req.params.travelClassId, req.params.serviceId);
-      res.status(200).json({ success: true, data: result });
+      res.status(200).json({ success: true, message: 'Service Offering deleted successfully', data: result });
     } catch (error) {
       throw error;
     }
@@ -47,7 +47,7 @@ class ServiceOfferingController {
   async getAll(req, res, next) {
     try {
       const serviceOfferings = await ServiceOfferingService.getAll();
-      res.status(200).json({ success: true, data: serviceOfferings });
+      res.status(200).json({ success: true, message: 'Service Offerings fetched successfully', data: serviceOfferings });
     } catch (error) {
       throw error;
     }

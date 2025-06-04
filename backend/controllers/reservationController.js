@@ -12,7 +12,7 @@ class ReservationController {
 
   async getById(req, res, next) {
     try {
-      const reservation = await ReservationService.getById(req.params.id);
+      const reservation = await ReservationService.getReservationById(req.params.id);
       if (!reservation) {
         return res.status(404).json({ success: false, message: 'Reservation not found' });
       }
@@ -33,14 +33,14 @@ class ReservationController {
 
   async getAll(req, res, next) {
     try {
-      const reservations = await ReservationService.getAll();
+      const reservations = await ReservationService.getAllReservations();
       res.status(200).json({ success: true, data: reservations });
     } catch (error) {
       throw error;
     }
   }
 
-  async getByPassengerId(req, res, next) {
+  async getReservationsByPassengerId(req, res, next) {
     try {
       const reservations = await ReservationService.getByPassengerId(req.params.passengerId);
       res.status(200).json({ success: true, data: reservations });

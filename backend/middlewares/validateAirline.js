@@ -7,8 +7,7 @@ exports.validateCreateAirline = [
     .notEmpty().withMessage('Mã hãng hàng không là bắt buộc')
     .isLength({ max: 3 }).withMessage('Mã hãng hàng không tối đa 3 ký tự')
     .toUpperCase(), // Store as uppercase
-  body('logo_url').optional().isURL().withMessage('URL logo không hợp lệ')
-];
+]; // Removed logo_url validation
 
 exports.validateUpdateAirline = [
   param('id').isUUID().withMessage('ID hãng hàng không không hợp lệ'),
@@ -18,7 +17,6 @@ exports.validateUpdateAirline = [
     .notEmpty().withMessage('Mã hãng hàng không không được rỗng nếu có')
     .isLength({ max: 3 }).withMessage('Mã hãng hàng không tối đa 3 ký tự')
     .toUpperCase(), // Store as uppercase
-  body('logo_url').optional().isURL().withMessage('URL logo không hợp lệ nếu có')
 ];
 
 exports.validateGetAirlineById = [

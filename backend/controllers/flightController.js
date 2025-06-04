@@ -54,7 +54,7 @@ class FlightController {
 
   async cancelFlight(req, res, next) {
   try {
-    const flight = await flightService.cancelFlight(req.params.id, {
+    const flight = await FlightService.cancelFlight(req.params.id, {
       reason: req.body.reason || '',
       employeeId: req.user?.id || null
     });
@@ -66,14 +66,12 @@ class FlightController {
 
   async deleteFlight(req, res, next) {
   try {
-    const result = await flightService.deleteFlight(req.params.id);
+    const result = await FlightService.deleteFlight(req.params.id);
     res.json({ success: true, data: result });
   } catch (err) {
     next(err);
   }
 };
-
-
 }
 
 module.exports = new FlightController();

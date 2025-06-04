@@ -1,10 +1,9 @@
 class Airport {
-  constructor({ id, name, code, city, country }) {
+  constructor({ id, name, code, city_id }) {
     this.id = id;
     this.name = name;
     this.code = code;
-    this.city = city;
-    this.country = country;
+    this.city_id = city_id;
   }
 }
 

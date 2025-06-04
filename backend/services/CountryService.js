@@ -4,7 +4,7 @@ class CountryService {
 
   /**
    * Lấy danh sách quốc gia với tùy chọn phân trang và lọc.
-   * @param {Object} options - Tùy chọn: page, limit, nameKeyword, isoCode, ...
+   * @param {Object} options - Tùy chọn: page, limit, nameKeyword, code, ...
    * @returns {Promise<Object>} - { data: [], total: number }
    */
   async getCountries(options = {}) {
@@ -12,12 +12,12 @@ class CountryService {
       page = 1,
       limit = 10,
       nameKeyword,      // New filter: keyword in name
-      isoCode           // New filter: exact match for iso_code
+      code           // New filter: exact match for code
     } = options;
     const offset = (page - 1) * limit;
 
     let query = `
-      SELECT id, name, iso_code, created_at, updated_at
+      SELECT id, name, code, created_at, updated_at
       FROM countries
       WHERE 1=1 -- Start with a true condition to easily append others
     `;
@@ -41,12 +41,12 @@ class CountryService {
         paramIndex++;
     }
 
-     // Filter by iso_code (case-insensitive)
-    if (isoCode) {
-        query += ` AND iso_code ILIKE $${paramIndex}`;
-        countQuery += ` AND iso_code ILIKE $${paramIndex}`;
-        filterValues.push(isoCode.toUpperCase()); // Store and filter as uppercase
-        countFilterValues.push(isoCode.toUpperCase()); // Store and filter as uppercase
+     // Filter by code (case-insensitive)
+    if (code) {
+        query += ` AND code ILIKE $${paramIndex}`;
+        countQuery += ` AND code ILIKE $${paramIndex}`;
+        filterValues.push(code.toUpperCase()); // Store and filter as uppercase
+        countFilterValues.push(code.toUpperCase()); // Store and filter as uppercase
         paramIndex++;
     }
 
@@ -84,7 +84,7 @@ class CountryService {
    async getCountryById(id) {
        try {
            const query = `
-                SELECT id, name, iso_code, created_at, updated_at
+                SELECT id, name, code, created_at, updated_at
                 FROM countries
                 WHERE id = $1;
            `;
@@ -101,7 +101,7 @@ class CountryService {
 
   /**
    * Tạo quốc gia mới.
-   * @param {Object} data - name, iso_code.
+   * @param {Object} data - name, code.
    * @returns {Promise<Object>} Quốc gia đã tạo.
    */
   async createCountry(data) {
@@ -109,17 +109,17 @@ class CountryService {
     try {
       await client.query('BEGIN');
 
-      // TODO: Add input validation (e.g., name, iso_code are required)
-      // TODO: Validate uniqueness of iso_code
+      // TODO: Add input validation (e.g., name, code are required)
+      // TODO: Validate uniqueness of code
 
       const query = `
-        INSERT INTO countries (name, iso_code)
+        INSERT INTO countries (name, code)
         VALUES ($1, $2)
-        RETURNING id, name, iso_code, created_at, updated_at;
+        RETURNING id, name, code, created_at, updated_at;
       `;
       const values = [
         data.name,
-        data.iso_code ? data.iso_code.toUpperCase() : null // Store as uppercase
+        data.code ? data.code.toUpperCase() : null // Store as uppercase
       ];
       const result = await client.query(query, values);
 
@@ -137,7 +137,7 @@ class CountryService {
   /**
    * Cập nhật thông tin quốc gia.
    * @param {string} id - UUID quốc gia.
-   * @param {Object} data - name (optional), iso_code (optional).
+   * @param {Object} data - name (optional), code (optional).
    * @returns {Promise<Object>} Quốc gia đã cập nhật.
    */
   async updateCountry(id, data) {
@@ -146,7 +146,7 @@ class CountryService {
       await client.query('BEGIN');
 
       // TODO: Add input validation
-      // TODO: Validate uniqueness of iso_code if it is being updated
+      // TODO: Validate uniqueness of code if it is being updated
 
       const updateFields = [];
       const values = [];
@@ -157,9 +157,9 @@ class CountryService {
           values.push(data.name);
           paramIndex++;
       }
-      if (data.iso_code !== undefined) {
-          updateFields.push(`iso_code = $${paramIndex}`);
-          values.push(data.iso_code ? data.iso_code.toUpperCase() : null); // Store as uppercase
+      if (data.code !== undefined) {
+          updateFields.push(`code = $${paramIndex}`);
+          values.push(data.code ? data.code.toUpperCase() : null); // Store as uppercase
           paramIndex++;
       }
 
@@ -180,7 +180,7 @@ class CountryService {
         UPDATE countries
         SET ${updateFields.join(', ')}
         WHERE id = $${paramIndex}
-        RETURNING id, name, iso_code, created_at, updated_at;
+        RETURNING id, name, code, created_at, updated_at;
       `;
 
       const result = await client.query(query, values);

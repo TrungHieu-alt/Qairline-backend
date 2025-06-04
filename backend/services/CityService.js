@@ -4,7 +4,7 @@ class CityService {
 
   /**
    * Lấy danh sách thành phố với tùy chọn phân trang và lọc.
-   * @param {Object} options - Tùy chọn: page, limit, nameKeyword, code, countryId, ...
+  * @param {Object} options - Tùy chọn: page, limit, nameKeyword, countryId, ...
    * @returns {Promise<Object>} - { data: [], total: number }
    */
   async getCities(options = {}) {
@@ -12,13 +12,12 @@ class CityService {
       page = 1,
       limit = 10,
       nameKeyword,      // New filter: keyword in name
-      code,             // New filter: exact match for code
       countryId         // New filter: by country_id (UUID)
     } = options;
     const offset = (page - 1) * limit;
 
     let query = `
-      SELECT id, name, code, country_id, created_at, updated_at
+      SELECT id, name, country_id, created_at, updated_at
       FROM cities
       WHERE 1=1 -- Start with a true condition to easily append others
     `;
@@ -42,14 +41,6 @@ class CityService {
         paramIndex++;
     }
 
-     // Filter by code (exact match)
-    if (code) {
-        query += ` AND code = $${paramIndex}`;
-        countQuery += ` AND code = $${paramIndex}`;
-        filterValues.push(code);
-        countFilterValues.push(code);
-        paramIndex++;
-    }
 
     // Filter by country_id
     if (countryId) {
@@ -94,7 +85,7 @@ class CityService {
    async getCityById(id) {
        try {
            const query = `
-                SELECT id, name, code, country_id, created_at, updated_at
+               SELECT id, name, country_id, created_at, updated_at
                 FROM cities
                 WHERE id = $1;
            `;
@@ -111,7 +102,7 @@ class CityService {
 
   /**
    * Tạo thành phố mới.
-   * @param {Object} data - name, code, country_id (UUID).
+  * @param {Object} data - name, country_id (UUID).
    * @returns {Promise<Object>} Thành phố đã tạo.
    */
   async createCity(data) {
@@ -119,18 +110,17 @@ class CityService {
     try {
       await client.query('BEGIN');
 
-      // TODO: Add input validation (e.g., name, code, country_id are required)
+      // TODO: Add input validation (e.g., name and country_id are required)
       // TODO: Validate if country_id exists in countries table
-      // TODO: Validate uniqueness of code
+      // TODO: Validate uniqueness of name and country combination
 
       const query = `
-        INSERT INTO cities (name, code, country_id)
-        VALUES ($1, $2, $3)
-        RETURNING id, name, code, country_id, created_at, updated_at;
+        INSERT INTO cities (name, country_id)
+        VALUES ($1, $2)
+        RETURNING id, name, country_id, created_at, updated_at;
       `;
       const values = [
         data.name,
-        data.code,
         data.country_id // UUID
       ];
       const result = await client.query(query, values);
@@ -149,7 +139,7 @@ class CityService {
   /**
    * Cập nhật thông tin thành phố.
    * @param {string} id - UUID thành phố.
-   * @param {Object} data - name (optional), code (optional), country_id (UUID, optional).
+   * @param {Object} data - name (optional), country_id (UUID, optional).
    * @returns {Promise<Object>} Thành phố đã cập nhật.
    */
   async updateCity(id, data) {
@@ -159,7 +149,7 @@ class CityService {
 
       // TODO: Add input validation
       // TODO: Validate if country_id exists if provided
-      // TODO: Validate uniqueness of code if it is being updated
+      // TODO: Validate uniqueness of name and country combination if name or country_id is updated
 
       const updateFields = [];
       const values = [];
@@ -168,11 +158,6 @@ class CityService {
       if (data.name !== undefined) {
           updateFields.push(`name = $${paramIndex}`);
           values.push(data.name);
-          paramIndex++;
-      }
-      if (data.code !== undefined) {
-          updateFields.push(`code = $${paramIndex}`);
-          values.push(data.code);
           paramIndex++;
       }
       if (data.country_id !== undefined) {
@@ -199,7 +184,7 @@ class CityService {
         UPDATE cities
         SET ${updateFields.join(', ')}
         WHERE id = $${paramIndex}
-        RETURNING id, name, code, country_id, created_at, updated_at;
+        RETURNING id, name, country_id, created_at, updated_at;
       `;
 
       const result = await client.query(query, values);

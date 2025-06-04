@@ -17,7 +17,7 @@ class CityService {
     const offset = (page - 1) * limit;
 
     let query = `
-      SELECT id, name, country_id, created_at, updated_at
+      SELECT id, name, country_id
       FROM cities
       WHERE 1=1 -- Start with a true condition to easily append others
     `;
@@ -85,7 +85,7 @@ class CityService {
    async getCityById(id) {
        try {
            const query = `
-               SELECT id, name, country_id, created_at, updated_at
+               SELECT id, name, country_id
                 FROM cities
                 WHERE id = $1;
            `;
@@ -117,7 +117,7 @@ class CityService {
       const query = `
         INSERT INTO cities (name, country_id)
         VALUES ($1, $2)
-        RETURNING id, name, country_id, created_at, updated_at;
+        RETURNING id, name, country_id;
       `;
       const values = [
         data.name,
@@ -177,14 +177,12 @@ class CityService {
            return existing; // Return existing data if no updates were requested
       }
 
-      updateFields.push(`updated_at = NOW()`);
-
       values.push(id); // UUID id for WHERE clause
       const query = `
         UPDATE cities
         SET ${updateFields.join(', ')}
         WHERE id = $${paramIndex}
-        RETURNING id, name, country_id, created_at, updated_at;
+        RETURNING id, name, country_id;
       `;
 
       const result = await client.query(query, values);

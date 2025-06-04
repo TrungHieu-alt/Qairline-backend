@@ -4,20 +4,19 @@ class AircraftTypeService {
 
   /**
    * Lấy danh sách loại máy bay với tùy chọn phân trang và lọc.
-   * @param {Object} options - Tùy chọn: page, limit, nameKeyword, manufacturerKeyword, ...
+   * @param {Object} options - Tùy chọn: page, limit, nameKeyword
    * @returns {Promise<Object>} - { data: [], total: number }
    */
   async getAircraftTypes(options = {}) {
     const {
       page = 1,
       limit = 10,
-      nameKeyword,
-      manufacturerKeyword
+      nameKeyword
     } = options;
     const offset = (page - 1) * limit;
 
     let query = `
-      SELECT id, name, manufacturer, total_seats, created_at, updated_at
+      SELECT id, name, total_seats
       FROM aircraft_types
       WHERE 1=1 -- Start with a true condition to easily append others
     `;
@@ -41,14 +40,7 @@ class AircraftTypeService {
         paramIndex++;
     }
 
-    // Filter by manufacturer keyword (case-insensitive)
-    if (manufacturerKeyword) {
-        query += ` AND manufacturer ILIKE $${paramIndex}`;
-        countQuery += ` AND manufacturer ILIKE $${paramIndex}`;
-        filterValues.push(`%${manufacturerKeyword}%`);
-        countFilterValues.push(`%${manufacturerKeyword}%`);
-        paramIndex++;
-    }
+    // Manufacturer column removed in V2, ignore manufacturerKeyword
 
     // Add other filters here if needed (e.g., total_seats range)
 
@@ -83,9 +75,9 @@ class AircraftTypeService {
    async getAircraftTypeById(id) {
        try {
            const query = `
-                SELECT id, name, manufacturer, total_seats, created_at, updated_at
-                FROM aircraft_types
-                WHERE id = $1;
+      SELECT id, name, total_seats
+      FROM aircraft_types
+      WHERE id = $1;
            `;
            const result = await db.query(query, [id]); // UUID id
            if (result.rows.length === 0) {
@@ -100,7 +92,7 @@ class AircraftTypeService {
 
   /**
    * Tạo loại máy bay mới.
-   * @param {Object} data - name, manufacturer, total_seats.
+   * @param {Object} data - name, total_seats.
    * @returns {Promise<Object>} Loại máy bay đã tạo.
    */
   async createAircraftType(data) {
@@ -111,13 +103,12 @@ class AircraftTypeService {
       // TODO: Add input validation (e.g., name and total_seats are required, total_seats is a positive integer)
 
       const query = `
-        INSERT INTO aircraft_types (name, manufacturer, total_seats)
-        VALUES ($1, $2, $3)
-        RETURNING id, name, manufacturer, total_seats, created_at, updated_at;
+        INSERT INTO aircraft_types (name, total_seats)
+        VALUES ($1, $2)
+        RETURNING id, name, total_seats;
       `;
       const values = [
         data.name,
-        data.manufacturer,
         data.total_seats
       ];
       const result = await client.query(query, values);
@@ -136,7 +127,7 @@ class AircraftTypeService {
   /**
    * Cập nhật loại máy bay.
    * @param {string} id - UUID loại máy bay.
-   * @param {Object} data - name, manufacturer, total_seats.
+   * @param {Object} data - name, total_seats.
    * @returns {Promise<Object>} Loại máy bay đã cập nhật.
    */
   async updateAircraftType(id, data) {
@@ -148,13 +139,12 @@ class AircraftTypeService {
 
       const query = `
         UPDATE aircraft_types
-        SET name = $1, manufacturer = $2, total_seats = $3, updated_at = NOW()
-        WHERE id = $4
-        RETURNING id, name, manufacturer, total_seats, created_at, updated_at;
+        SET name = $1, total_seats = $2
+        WHERE id = $3
+        RETURNING id, name, total_seats;
       `;
       const values = [
         data.name,
-        data.manufacturer,
         data.total_seats,
         id // UUID id
       ];

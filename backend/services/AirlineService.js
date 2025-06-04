@@ -18,7 +18,7 @@ class AirlineService {
     const offset = (page - 1) * limit;
 
     let query = `
-      SELECT id, name, code, created_at, updated_at
+      SELECT id, name, code
       FROM airlines
       WHERE 1=1 -- Start with a true condition to easily append others
     `;
@@ -85,7 +85,7 @@ class AirlineService {
    async getAirlineById(id) {
        try {
            const query = `
-                SELECT id, name, code, created_at, updated_at
+                SELECT id, name, code
                 FROM airlines
                 WHERE id = $1;
            `;
@@ -116,7 +116,7 @@ class AirlineService {
       const query = `
         INSERT INTO airlines (name, code)
         VALUES ($1, $2)
-        RETURNING id, name, code, created_at, updated_at;
+        RETURNING id, name, code;
       `;
       const values = [
         data.name,
@@ -151,9 +151,9 @@ class AirlineService {
 
       const query = `
         UPDATE airlines
-        SET name = $1, code = $2, updated_at = NOW()
+        SET name = $1, code = $2
         WHERE id = $3
-        RETURNING id, name, code, created_at, updated_at;
+        RETURNING id, name, code;
       `;
       const values = [
         data.name,
@@ -197,13 +197,14 @@ class AirlineService {
         throw new Error('Cannot delete airline: Still has aircrafts linked.');
       }
 
-      // Check for related flights
+      // Check for flights via aircrafts
       const flightsRef = await client.query(
-        'SELECT 1 FROM flights WHERE airline_id = $1 LIMIT 1',
-        [id] // UUID id
+        `SELECT 1 FROM flights f
+         JOIN aircrafts ac ON f.aircraft_id = ac.id
+         WHERE ac.airline_id = $1 LIMIT 1`,
+        [id]
       );
       if (flightsRef.rows.length > 0) {
-         // TODO: Refine this check based on flight status (only prevent deletion if assigned to active/scheduled flights)
         throw new Error('Cannot delete airline: Still has flights linked.');
       }
 

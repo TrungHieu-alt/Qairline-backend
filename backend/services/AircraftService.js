@@ -4,22 +4,21 @@ class AircraftService {
 
   /**
    * Lấy danh sách máy bay cụ thể với tùy chọn phân trang và lọc.
-   * @param {Object} options - Tùy chọn: page, limit, airlineId, aircraftTypeId, status, aircraftCodeKeyword, ...
+   * @param {Object} options - Tùy chọn: page, limit, airlineId, aircraftTypeId, registrationKeyword
    * @returns {Promise<Object>} - { data: [], total: number }
    */
   async getAircrafts(options = {}) {
     const {
       page = 1,
       limit = 10,
-      airlineId,           // New filter: by airline_id
-      aircraftTypeId,    // New filter: by aircraft_type_id
-      status,              // New filter: by status
-      aircraftCodeKeyword  // New filter: keyword in aircraft_code
+      airlineId,           // Filter by airline_id
+      aircraftTypeId,    // Filter by aircraft_type_id
+      registrationKeyword  // Filter by keyword in registration_number
     } = options;
     const offset = (page - 1) * limit;
 
     let query = `
-      SELECT id, airline_id, aircraft_type_id, aircraft_code, status, manufacturer, created_at, updated_at
+      SELECT id, airline_id, aircraft_type_id, registration_number
       FROM aircrafts
       WHERE 1=1 -- Start with a true condition to easily append others
     `;
@@ -52,28 +51,19 @@ class AircraftService {
         paramIndex++;
     }
 
-    // Filter by status
-    if (status) {
-        query += ` AND status = $${paramIndex}`;
-        countQuery += ` AND status = $${paramIndex}`;
-        filterValues.push(status);
-        countFilterValues.push(status);
-        paramIndex++;
-    }
-
-    // Filter by aircraft_code keyword (case-insensitive)
-    if (aircraftCodeKeyword) {
-        query += ` AND aircraft_code ILIKE $${paramIndex}`;
-        countQuery += ` AND aircraft_code ILIKE $${paramIndex}`;
-        filterValues.push(`%${aircraftCodeKeyword}%`);
-        countFilterValues.push(`%${aircraftCodeKeyword}%`);
+    // Filter by registration_number keyword (case-insensitive)
+    if (registrationKeyword) {
+        query += ` AND registration_number ILIKE $${paramIndex}`;
+        countQuery += ` AND registration_number ILIKE $${paramIndex}`;
+        filterValues.push(`%${registrationKeyword}%`);
+        countFilterValues.push(`%${registrationKeyword}%`);
         paramIndex++;
     }
 
     // Add other filters here if needed
 
     query += `
-      ORDER BY aircraft_code ASC -- Default order
+      ORDER BY registration_number ASC -- Default order
       LIMIT $${paramIndex} OFFSET $${paramIndex + 1};
     `;
     filterValues.push(limit);
@@ -103,7 +93,7 @@ class AircraftService {
    async getAircraftById(id) {
        try {
            const query = `
-                SELECT id, airline_id, aircraft_type_id, aircraft_code, status, manufacturer, created_at, updated_at
+                SELECT id, airline_id, aircraft_type_id, registration_number
                 FROM aircrafts
                 WHERE id = $1;
            `;
@@ -120,7 +110,7 @@ class AircraftService {
 
   /**
    * Tạo máy bay cụ thể mới.
-   * @param {Object} data - airline_id (UUID), aircraft_type_id (UUID), aircraft_code, status, manufacturer (optional).
+   * @param {Object} data - airline_id (UUID), aircraft_type_id (UUID), registration_number.
    * @returns {Promise<Object>} Máy bay đã tạo.
    */
   async createAircraft(data) {
@@ -128,20 +118,18 @@ class AircraftService {
     try {
       await client.query('BEGIN');
 
-      // TODO: Add input validation (e.g., airline_id, aircraft_type_id, aircraft_code, status are required)
+      // TODO: Add input validation (e.g., airline_id, aircraft_type_id, registration_number are required)
       // TODO: Validate if airline_id and aircraft_type_id exist in their respective tables
 
       const query = `
-        INSERT INTO aircrafts (airline_id, aircraft_type_id, aircraft_code, status, manufacturer)
-        VALUES ($1, $2, $3, $4, $5)
-        RETURNING id, airline_id, aircraft_type_id, aircraft_code, status, manufacturer, created_at, updated_at;
+        INSERT INTO aircrafts (airline_id, aircraft_type_id, registration_number)
+        VALUES ($1, $2, $3)
+        RETURNING id, airline_id, aircraft_type_id, registration_number;
       `;
       const values = [
         data.airline_id,       // UUID
         data.aircraft_type_id, // UUID
-        data.aircraft_code,
-        data.status,
-        data.manufacturer
+        data.registration_number
       ];
       const result = await client.query(query, values);
 
@@ -172,16 +160,14 @@ class AircraftService {
 
       const query = `
         UPDATE aircrafts
-        SET airline_id = $1, aircraft_type_id = $2, aircraft_code = $3, status = $4, manufacturer = $5, updated_at = NOW()
-        WHERE id = $6
-        RETURNING id, airline_id, aircraft_type_id, aircraft_code, status, manufacturer, created_at, updated_at;
+        SET airline_id = $1, aircraft_type_id = $2, registration_number = $3
+        WHERE id = $4
+        RETURNING id, airline_id, aircraft_type_id, registration_number;
       `;
       const values = [
         data.airline_id,       // UUID
         data.aircraft_type_id, // UUID
-        data.aircraft_code,
-        data.status,
-        data.manufacturer,
+        data.registration_number,
         id // UUID id
       ];
       const result = await client.query(query, values);

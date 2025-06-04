@@ -20,7 +20,7 @@ class AirportService {
     const offset = (page - 1) * limit;
 
     let query = `
-      SELECT id, name, code, city_id, created_at, updated_at
+      SELECT id, name, code, city_id
       FROM airports
       WHERE 1=1 -- Start with a true condition to easily append others
     `;
@@ -97,7 +97,7 @@ class AirportService {
    async getAirportById(id) {
        try {
            const query = `
-                SELECT id, name, code, city_id, created_at, updated_at
+                SELECT id, name, code, city_id
                 FROM airports
                 WHERE id = $1;
            `;
@@ -129,7 +129,7 @@ class AirportService {
       const query = `
         INSERT INTO airports (name, code, city_id)
         VALUES ($1, $2, $3)
-        RETURNING id, name, code, city_id, created_at, updated_at;
+        RETURNING id, name, code, city_id;
       `;
       const values = [
         data.name,
@@ -166,9 +166,9 @@ class AirportService {
 
       const query = `
         UPDATE airports
-        SET name = $1, code = $2, city_id = $3, updated_at = NOW()
+        SET name = $1, code = $2, city_id = $3
         WHERE id = $4
-        RETURNING id, name, code, city_id, created_at, updated_at;
+        RETURNING id, name, code, city_id;
       `;
       const values = [
         data.name,
@@ -204,19 +204,10 @@ class AirportService {
     try {
       await client.query('BEGIN');
 
-      // Check for related routes
-      const routesRef = await client.query(
-        'SELECT 1 FROM routes WHERE origin_airport_id = $1 OR destination_airport_id = $1 LIMIT 1',
-        [id] // UUID id
-      );
-      if (routesRef.rows.length > 0) {
-        throw new Error('Cannot delete airport: Still used in routes.');
-      }
-
       // Check for related flights
       const flightsRef = await client.query(
-        'SELECT 1 FROM flights WHERE origin_airport_id = $1 OR destination_airport_id = $1 LIMIT 1',
-        [id] // UUID id
+        'SELECT 1 FROM flights WHERE source_airport_id = $1 OR destination_airport_id = $1 LIMIT 1',
+        [id]
       );
       if (flightsRef.rows.length > 0) {
         // TODO: Refine this check based on flight status (only prevent deletion if assigned to active/scheduled flights)

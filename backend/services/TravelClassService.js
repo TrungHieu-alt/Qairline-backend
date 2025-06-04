@@ -16,7 +16,7 @@ class TravelClassService {
     const offset = (page - 1) * limit;
 
     let query = `
-      SELECT id, name, created_at, updated_at
+      SELECT id, name, description
       FROM travel_classes
       WHERE 1=1 -- Start with a true condition to easily append others
     `;
@@ -74,7 +74,7 @@ class TravelClassService {
    async getTravelClassById(id) {
        try {
            const query = `
-                SELECT id, name, created_at, updated_at
+                SELECT id, name, description
                 FROM travel_classes
                 WHERE id = $1;
            `;
@@ -103,12 +103,13 @@ class TravelClassService {
       // TODO: Validate uniqueness of name
 
       const query = `
-        INSERT INTO travel_classes (name)
-        VALUES ($1)
-        RETURNING id, name, created_at, updated_at;
+        INSERT INTO travel_classes (name, description)
+        VALUES ($1, $2)
+        RETURNING id, name, description;
       `;
       const values = [
         data.name,
+        data.description
       ];
       const result = await client.query(query, values);
 
@@ -146,6 +147,11 @@ class TravelClassService {
           values.push(data.name);
           paramIndex++;
       }
+      if (data.description !== undefined) {
+          updateFields.push(`description = $${paramIndex}`);
+          values.push(data.description);
+          paramIndex++;
+      }
 
       if (updateFields.length === 0) {
           // No fields to update
@@ -157,14 +163,12 @@ class TravelClassService {
            return existing; // Return existing data if no updates were requested
       }
 
-      updateFields.push(`updated_at = NOW()`);
-
       values.push(id); // UUID id for WHERE clause
       const query = `
         UPDATE travel_classes
         SET ${updateFields.join(', ')}
         WHERE id = $${paramIndex}
-        RETURNING id, name, created_at, updated_at;
+        RETURNING id, name, description;
       `;
 
       const result = await client.query(query, values);

@@ -2,11 +2,11 @@
 const { Pool } = require('pg');
 
 const pool = new Pool({
-  user: 'postgres',      // Thay bằng user của bạn
-  host: 'localhost',
-  database: 'QAirline',   // Thay bằng tên database của bạn
-  password: 'H.231204', // Thay bằng mật khẩu
-  port: 5432,
+  user: process.env.PGUSER || 'postgres',
+  host: process.env.PGHOST || 'localhost',
+  database: process.env.PGDATABASE || 'QAirline',
+  password: process.env.PGPASSWORD || '',
+  port: process.env.PGPORT ? parseInt(process.env.PGPORT, 10) : 5432,
 });
 
 pool.on('connect', () => {
@@ -16,5 +16,5 @@ pool.on('connect', () => {
 pool.on('error', (err) => {
   console.error('❌ Lỗi kết nối cơ sở dữ liệu:', err.stack);
 });
-console.log('📊 Module db được export:', module.exports);
+
 module.exports = pool;

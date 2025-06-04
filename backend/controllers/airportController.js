@@ -1,6 +1,5 @@
 // controllers/AirportController.js
 const AirportService = require('../services/AirportService');
-console.log('📊 AirportService trong AirportController:', AirportService);
 
 class AirportController {
   async getAll(req, res) {

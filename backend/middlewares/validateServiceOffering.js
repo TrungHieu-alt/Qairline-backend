@@ -1,4 +1,4 @@
-const { body, param, validationResult } = require('express-validator');
+const { body, param } = require('express-validator');
 const { handleValidationErrors } = require('../middlewares/validateUtils');
 
 exports.validateCreateServiceOffering = [
@@ -31,10 +31,10 @@ exports.validateUpdateServiceOffering = [
     .isBoolean().withMessage('is_offered must be a boolean'),
   body('from_month')
     .optional()
-    .isInt({ min: 1, max: 12 }).withMessage('from_month must be an integer between 1 and 12'),
+    .isString().withMessage('from_month must be a string'),
   body('to_month')
     .optional()
-    .isInt({ min: 1, max: 12 }).withMessage('to_month must be an integer between 1 and 12')
+    .isString().withMessage('to_month must be a string')
     .custom((value, { req }) => {
       // Only perform the check if both from_month and to_month are provided in the body
       const fromMonth = req.body.from_month !== undefined ? req.body.from_month : null;
@@ -65,13 +65,4 @@ exports.validateDeleteServiceOffering = [
     .isUUID().withMessage('Invalid service_id UUID format in param'),
 ];
 
-
-// Middleware xử lý lỗi validation (assuming it will be moved later)
-exports.handleValidationErrors = (req, res, next) => {
-  const errors = validationResult(req);
-  if (!errors.isEmpty()) {
-    console.error('❌ Validation Errors:', errors.array()); // Use error for errors
-    return res.status(400).json({ success: false, error: errors.array().map(err => err.msg).join(', ') }); // Return all error messages
-  }
-  next();
-};
+exports.handleValidationErrors = handleValidationErrors;

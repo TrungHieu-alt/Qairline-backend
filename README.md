@@ -451,28 +451,7 @@ Authorization: Bearer <token>
 }
 ```
 
-## 14. Tìm chuyến bay nhiều chặng
-Ví dụ gọi `/flights/search` với body:
-```json
-{
-  "legs": [
-    { "from_airport_id": "uuid1", "to_airport_id": "uuid2", "date": "2025-06-01" },
-    { "from_airport_id": "uuid2", "to_airport_id": "uuid3", "date": "2025-06-05" }
-  ]
-}
-```
-Kết quả trả về dạng:
-```json
-{
-  "success": true,
-  "data": [
-    [ /* chặng 1 */ ],
-    [ /* chặng 2 */ ]
-  ]
-}
-```
-
-## 15. API Loại máy bay
+## 14. API Loại máy bay
 | Phương thức | Endpoint | Quyền | Mô tả |
 |-------------|----------|-------|-------|
 |`GET`|`/aircraft-types`|Công khai|Danh sách loại máy bay.|

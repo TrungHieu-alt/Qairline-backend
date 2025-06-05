@@ -4,17 +4,23 @@ class Announcement {
     title,
     content,
     type,
-    published_date,
-    expiry_date,
-    created_by
+    status,
+    start_date,
+    end_date,
+    priority,
+    created_at,
+    updated_at
   }) {
     this.id = id;
     this.title = title;
     this.content = content;
     this.type = type;
-    this.published_date = published_date;
-    this.expiry_date = expiry_date;
-    this.created_by = created_by;
+    this.status = status;
+    this.start_date = start_date;
+    this.end_date = end_date;
+ this.priority = priority;
+ this.created_at = created_at;
+ this.updated_at = updated_at;
   }
 }
 module.exports = Announcement;

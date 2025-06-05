@@ -60,12 +60,15 @@ class FlightController {
     next(err);
   }
 
+  }
+
   async deleteFlight(req, res, next) {
   try {
     const result = await FlightService.deleteFlight(req.params.id);
     res.json({ success: true, data: result });
   } catch (err) {
     next(err);
+  }
   }
 }
 

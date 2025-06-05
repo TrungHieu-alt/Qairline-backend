@@ -3,6 +3,21 @@
 ## Giới thiệu
 Backend QAirline được xây dựng với Node.js và Express. Mọi đường dẫn bên dưới đều được gắn tiền tố `/api`. Một số API yêu cầu xác thực JWT và phân quyền (passenger hoặc admin).
 
+### Lưu ý định dạng dữ liệu
+- Các trường ID phải là chuỗi UUID hợp lệ.
+- Trường ngày giờ tuân theo chuẩn ISO-8601.
+- Các giá trị số (ví dụ `price`, `page`, `limit`) cần gửi dạng số.
+- Mã sân bay, mã quốc gia, mã hãng hàng không phải viết hoa với độ dài cố định.
+- Số điện thoại theo chuẩn E.164 (ví dụ `+84901234567`).
+- Trường `from_month`/`to_month` dùng định dạng `YYYY-MM`.
+- Các trường boolean như `is_offered` nhận `true`/`false`.
+- Trường trạng thái/loại chỉ nhận các giá trị hợp lệ:
+  - `announcement.type`: `INFO`, `PROMOTION`, `WARNING`, `DELAY`, `MAINTENANCE`
+  - `announcement.status`: `ACTIVE`, `INACTIVE`, `ARCHIVED`
+  - `payment.status`: `NEW`, `PAID`, `CANCELLED`
+  - `stats.interval`: `day`, `month`, `year`
+- Middleware sẽ phản hồi lỗi xác thực nếu dữ liệu không tuân thủ quy tắc trên.
+
 ## URL cơ bản
 ```
 http://localhost:3000/api

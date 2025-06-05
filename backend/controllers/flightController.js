@@ -52,6 +52,15 @@ class FlightController {
     }
   }
 
+  async getPassengersOnFlight(req, res, next) {
+    try {
+      const passengers = await FlightService.getPassengersOnFlight(req.params.id);
+      res.json({ success: true, data: passengers });
+    } catch (error) {
+      next(error);
+    }
+  }
+
   async cancelFlight(req, res, next) {
   try {
     const flight = await FlightService.cancelFlight(req.params.id);

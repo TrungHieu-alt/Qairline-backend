@@ -41,6 +41,16 @@ class PassengerController {
     }
   }
 
+  async linkPassengerToUser(req, res, next) {
+    try {
+      const { passengerId, userId } = req.params;
+      const result = await PassengerService.linkPassengerToUser(passengerId, userId);
+      res.status(200).json({ success: true, data: result });
+    } catch (error) {
+      next(error); // Use next(error) to pass error to error handling middleware
+    }
+  }
+
   async delete(req, res, next) {
     try {
       const result = await PassengerService.deletePassenger(req.params.id);

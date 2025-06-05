@@ -1,40 +1,139 @@
 const { body, param } = require('express-validator');
+const pool = require('../config/db'); // Import pool từ db.js
 const { handleValidationErrors } = require('../middlewares/validateUtils');
 
-// Middleware xử lý lỗi validation (có thể được chuyển ra file riêng sau)
+// Thông điệp lỗi chung
+const errorMessages = {
+  required: (field) => `${field} là bắt buộc`,
+  invalidUUID: (field) => `${field} không hợp lệ`,
+  invalidDate: (field) => `${field} không hợp lệ`,
+  notFound: (field) => `${field} không tồn tại`,
+  unique: (field) => `${field} đã được sử dụng`,
+  invalidFloat: (field) => `${field} phải là số không âm`,
+  invalidStatus: (field) => `${field} không hợp lệ. Chỉ chấp nhận NEW, PAID, CANCELLED`,
+  pastDate: (field) => `${field} không được nằm trong quá khứ`,
+  invalidReservation: 'Đặt chỗ không thể hủy do trạng thái hiện tại',
+};
+
+// Validate tạo đặt chỗ
 exports.validateCreateReservation = [
   body('passenger_id')
-    .isUUID().withMessage('Passenger ID không hợp lệ')
-    .notEmpty().withMessage('Passenger ID là bắt buộc'),
+    .notEmpty().withMessage(errorMessages.required('ID hành khách'))
+    .isUUID().withMessage(errorMessages.invalidUUID('ID hành khách'))
+    .custom(async (value) => {
+      try {
+        const result = await pool.query('SELECT id FROM passengers WHERE id = $1', [value]);
+        if (result.rows.length === 0) {
+          throw new Error(errorMessages.notFound('Hành khách'));
+        }
+      } catch (err) {
+        throw new Error(`Lỗi kiểm tra hành khách: ${err.message}`);
+      }
+      return true;
+    }),
   body('seat_id')
-    .isUUID().withMessage('Seat ID không hợp lệ')
-    .notEmpty().withMessage('Seat ID là bắt buộc'),
-
-  // Optional payment validation
-  body('payment').optional().isObject().withMessage('Thông tin thanh toán không hợp lệ'),
+    .notEmpty().withMessage(errorMessages.required('ID ghế'))
+    .isUUID().withMessage(errorMessages.invalidUUID('ID ghế'))
+    .custom(async (value) => {
+      try {
+        // Kiểm tra ghế tồn tại
+        const seatResult = await pool.query('SELECT id, flight_id FROM seats WHERE id = $1', [value]);
+        if (seatResult.rows.length === 0) {
+          throw new Error(errorMessages.notFound('Ghế'));
+        }
+        // Kiểm tra ghế chưa được đặt
+        const reservationResult = await pool.query('SELECT id FROM reservations WHERE seat_id = $1', [value]);
+        if (reservationResult.rows.length > 0) {
+          throw new Error(errorMessages.unique('Ghế'));
+        }
+        // Kiểm tra chuyến bay hợp lệ
+        const flightId = seatResult.rows[0].flight_id;
+        const flightResult = await pool.query('SELECT id, status FROM flights WHERE id = $1', [flightId]);
+        if (flightResult.rows.length === 0 || ['CANCELLED', 'COMPLETED'].includes(flightResult.rows[0].status)) {
+          throw new Error('Chuyến bay không hợp lệ hoặc đã kết thúc');
+        }
+      } catch (err) {
+        throw new Error(`Lỗi kiểm tra ghế: ${err.message}`);
+      }
+      return true;
+    }),
+  body('payment')
+    .optional()
+    .isObject().withMessage('Thông tin thanh toán không hợp lệ'),
   body('payment.amount')
     .optional()
-    .isFloat({ min: 0 }).withMessage('Số tiền thanh toán không hợp lệ (phải là số không âm)'),
+    .isFloat({ min: 0 }).withMessage(errorMessages.invalidFloat('Số tiền thanh toán')),
   body('payment.due_date')
     .optional()
-    .isISO8601().toDate().withMessage('Ngày hết hạn thanh toán không hợp lệ'),
+    .isISO8601().withMessage(errorMessages.invalidDate('Ngày hết hạn thanh toán'))
+    .toDate()
+    .custom((value) => {
+      if (value) {
+        const now = new Date();
+        if (new Date(value) <= now) {
+          throw new Error(errorMessages.pastDate('Ngày hết hạn thanh toán'));
+        }
+      }
+      return true;
+    }),
   body('payment.status')
     .optional()
-    .isIn(['N', 'P', 'C']).withMessage('Trạng thái thanh toán không hợp lệ. Chỉ chấp nhận N, P, C.'), // N: New, P: Paid, C: Cancelled - Adjust as per your actual statuses
+    .isIn(['NEW', 'PAID', 'CANCELLED']).withMessage(errorMessages.invalidStatus('Trạng thái thanh toán'))
+    .trim(),
 ];
 
+// Validate lấy đặt chỗ theo ID
 exports.validateGetReservationById = [
   param('id')
-    .isUUID().withMessage('ID đặt chỗ không hợp lệ')
-    .notEmpty().withMessage('ID đặt chỗ là bắt buộc'),
+    .notEmpty().withMessage(errorMessages.required('ID đặt chỗ'))
+    .isUUID().withMessage(errorMessages.invalidUUID('ID đặt chỗ'))
+    .custom(async (value) => {
+      try {
+        const result = await pool.query('SELECT id FROM reservations WHERE id = $1', [value]);
+        if (result.rows.length === 0) {
+          throw new Error(errorMessages.notFound('Đặt chỗ'));
+        }
+      } catch (err) {
+        throw new Error(`Lỗi kiểm tra đặt chỗ: ${err.message}`);
+      }
+      return true;
+    }),
 ];
 
+// Validate lấy các đặt chỗ theo ID hành khách
 exports.validateGetReservationsByPassengerId = [
-  param('passengerId').isUUID().withMessage('ID hành khách không hợp lệ')
+  param('pid')
+    .isUUID().withMessage(errorMessages.invalidUUID('ID hành khách'))
+    .custom(async (value) => {
+      try {
+        const result = await pool.query('SELECT id FROM passengers WHERE id = $1', [value]);
+        if (result.rows.length === 0) {
+          throw new Error(errorMessages.notFound('Hành khách'));
+        }
+      } catch (err) {
+        throw new Error(`Lỗi kiểm tra hành khách: ${err.message}`);
+      }
+      return true;
+    }),
 ];
 
+// Validate hủy đặt chỗ
 exports.validateCancelReservation = [
   param('id')
-    .isUUID().withMessage('ID đặt chỗ không hợp lệ')
-    .notEmpty().withMessage('ID đặt chỗ là bắt buộc'),
+    .notEmpty().withMessage(errorMessages.required('ID đặt chỗ'))
+    .isUUID().withMessage(errorMessages.invalidUUID('ID đặt chỗ'))
+    .custom(async (id) => {
+      try {
+        const result = await pool.query('SELECT id, payment_status FROM reservations WHERE id = $1', [id]);
+        if (result.rows.length === 0) {
+          throw new Error(errorMessages.notFound('Đặt chỗ'));
+        }
+        if (result.rows[0].payment_status === 'PAID') {
+          throw new Error(errorMessages.invalidReservation);
+        }
+      } catch (err) {
+        throw new Error(`Lỗi kiểm tra đặt chỗ: ${err.message}`);
+      }
+      return true;
+    }),
 ];

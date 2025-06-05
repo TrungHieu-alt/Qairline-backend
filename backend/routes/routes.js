@@ -18,10 +18,7 @@ const TravelClassController = require('../controllers/travelClassController');
 const CityController = require('../controllers/cityController');
 const CountryController = require('../controllers/countryController');
 const StatisticController = require('../controllers/statisticController');
-// Add ServiceController here when available
-
-// Add serviceController instance here when available
-
+const AircraftTypeController = require('../controllers/aircraftTypeController');
 
 // Validation Middleware
 const { validateRegister, validateLogin } = require('../middlewares/validateAuth');
@@ -30,13 +27,14 @@ const { validateCreateAirline, validateUpdateAirline, validateGetAirlineById, va
 const { validateCreateAirport, validateUpdateAirport, validateGetAirportById, validateDeleteAirport } = require('../middlewares/validateAirport'); // Assuming these exist or will be created
 const { validateCreateAnnouncement, validateUpdateAnnouncement, validateDeleteAnnouncement, validateGetAnnouncementById } = require('../middlewares/validateAnnouncement'); // Assuming GetById exists or will be created
 const { validateCreateFlight, validateSearchFlights, validateDelayFlight, validateGetFlightById, validateCancelFlight, validateDeleteFlight } = require('../middlewares/validateFlight'); // Assuming other validations exist or will be created
-const { validateCreatePassenger, validateUpdatePassenger, validateGetPassengerById, validateDeletePassenger } = require('../middlewares/validatePassenger');
+const { validateCreatePassenger, validateUpdatePassenger, validateGetPassengerById, validateDeletePassenger,validateLinkPassengerToUser } = require('../middlewares/validatePassenger');
 const { validateCreateReservation, validateGetReservationById, validateCancelReservation, validateGetReservationsByPassengerId } = require('../middlewares/validateReservation');
 const { validateCreateServiceOffering, validateGetServiceOfferingById, validateUpdateServiceOffering, validateDeleteServiceOffering } = require('../middlewares/validateServiceOffering');
 const { validateCreateCity, validateUpdateCity, validateGetCityById, validateDeleteCity, validateGetAllCities } = require('../middlewares/validateCity'); // Assuming GetAll exists or will be created
 const { validateCreateCountry, validateUpdateCountry, validateGetCountryById, validateDeleteCountry, validateGetAllCountries } = require('../middlewares/validateCountry'); // Assuming GetAll exists or will be created
+const { validateGetRevenueByTime, validateGetRevenueByRoute, validateGetRevenueByAirline, validateGetRevenueByTravelClass } = require('../middlewares/validateStatistic');
 const { validateCreateTravelClass, validateUpdateTravelClass, validateGetTravelClassById, validateDeleteTravelClass } = require('../middlewares/validateTravelClass');
-
+const { validateCreateAircraftType, validateUpdateAircraftType, validateGetAircraftTypeById, validateDeleteAircraftType } = require('../middlewares/validateAircraftType');
 
 // Auth Routes
 router.post('/auth/register', validateRegister, handleValidationErrors, AuthController.registerPassenger);
@@ -79,12 +77,16 @@ router.put('/flights/:id/delay', authenticate, authorize(['admin']), validateDel
 router.put('/flights/:id/cancel', authenticate, authorize(['admin']), validateCancelFlight, handleValidationErrors, FlightController.cancelFlight); // Assuming validateCancelFlight exists
 router.delete('/flights/:id', authenticate, authorize(['admin']), validateDeleteFlight, handleValidationErrors, FlightController.deleteFlight); // Assuming validateDeleteFlight exists
 
+router.get('/flights/:id/passengers', authenticate, authorize(['admin']), validateGetFlightById, handleValidationErrors, FlightController.getPassengersOnFlight);
+
 // Passenger Routes (Admin only for CRUD)
 router.get('/passengers', authenticate, authorize(['admin']), PassengerController.getAll);
 router.get('/passengers/:id', authenticate, authorize(['admin']), validateGetPassengerById, handleValidationErrors, PassengerController.getById);
 router.post('/passengers', authenticate, authorize(['admin']), validateCreatePassenger, handleValidationErrors, PassengerController.create);
 router.put('/passengers/:id', authenticate, authorize(['admin']), validateUpdatePassenger, handleValidationErrors, PassengerController.update);
 router.delete('/passengers/:id', authenticate, authorize(['admin']), validateGetPassengerById, handleValidationErrors, PassengerController.delete);
+
+router.post('/passengers/:passengerId/link-user/:userId', authenticate, authorize(['admin']), validateLinkPassengerToUser, handleValidationErrors, PassengerController.linkPassengerToUser);
 
 // Reservation Routes (Passenger for create/cancel/get by passenger, Admin for getById/getAll)
 router.post('/reservations', authenticate, authorize(['passenger']), validateCreateReservation, handleValidationErrors, ReservationController.create);
@@ -126,7 +128,17 @@ router.get('/stats', authenticate, authorize(['admin']), StatisticController.get
 router.get('/recent-bookings', authenticate, authorize(['admin']), StatisticController.getRecentBookings);
 router.get('/upcoming-flights', authenticate, authorize(['admin']), StatisticController.getUpcomingFlights);
 router.get('/booking-trends', authenticate, authorize(['admin']), StatisticController.getBookingTrends);
+router.get('/stats/revenue-by-time', authenticate, authorize(['admin']), validateGetRevenueByTime, handleValidationErrors, StatisticController.getRevenueByTime);
+router.get('/stats/revenue-by-route', authenticate, authorize(['admin']), validateGetRevenueByRoute, handleValidationErrors, StatisticController.getRevenueByRoute);
+router.get('/stats/revenue-by-airline', authenticate, authorize(['admin']), validateGetRevenueByAirline, handleValidationErrors, StatisticController.getRevenueByAirline);
+router.get('/stats/revenue-by-travel-class', authenticate, authorize(['admin']), validateGetRevenueByTravelClass, handleValidationErrors, StatisticController.getRevenueByTravelClass);
 
+// Aircraft Type Routes (Admin for create/update/delete, Public for get)
+router.get('/aircraft-types', AircraftTypeController.getAllAircraftTypes);
+router.get('/aircraft-types/:id', validateGetAircraftTypeById, handleValidationErrors, AircraftTypeController.getAircraftTypeById);
+router.post('/aircraft-types', authenticate, authorize(['admin']), validateCreateAircraftType, handleValidationErrors, AircraftTypeController.createAircraftType);
+router.put('/aircraft-types/:id', authenticate, authorize(['admin']), validateUpdateAircraftType, handleValidationErrors, AircraftTypeController.updateAircraftType);
+router.delete('/aircraft-types/:id', authenticate, authorize(['admin']), validateDeleteAircraftType, handleValidationErrors, AircraftTypeController.deleteAircraftType);
 // Add Service Routes here when ServiceController and ServiceService are available
 
 module.exports = router;

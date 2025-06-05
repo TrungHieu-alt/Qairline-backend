@@ -1,8 +1,15 @@
 const db = require('../config/db'); // Giả định đã cấu hình kết nối DB
 const crypto = require('crypto'); // Cần import module crypto để tạo UUID
 
-class FlightService {
+class FlightServiceError extends Error {
+    constructor(message, code) {
+        super(message);
+        this.name = 'FlightServiceError';
+        this.code = code || 'UNKNOWN_ERROR';
+    }
+}
 
+class FlightService {
     /**
      * Lấy toàn bộ chuyến bay, sắp xếp theo giờ khởi hành tăng dần.
      * @returns {Promise<Array<Object>>}
@@ -32,11 +39,10 @@ class FlightService {
                 ORDER BY f.departure_time ASC;
             `;
             const result = await db.query(query);
-            // Map results if necessary to match desired output structure
             return result.rows;
         } catch (error) {
             console.error('❌ Error fetching all flights:', error.message);
-            throw new Error(`Could not fetch all flights: ${error.message}`);
+            throw new FlightServiceError(`Could not fetch all flights: ${error.message}`, 'FETCH_FLIGHTS_FAILED');
         }
     }
 
@@ -66,11 +72,10 @@ class FlightService {
             `;
             const result = await db.query(query, [id]);
             if (result.rows.length === 0) return null;
-            // Map result to a Flight model or plain object
             return result.rows[0];
         } catch (error) {
             console.error(`❌ Error fetching flight by ID ${id}:`, error.message);
-            throw new Error(`Could not fetch flight: ${error.message}`);
+            throw new FlightServiceError(`Could not fetch flight: ${error.message}`, 'FETCH_FLIGHT_FAILED');
         }
     }
 
@@ -105,7 +110,7 @@ class FlightService {
             return result.rows;
         } catch (error) {
             console.error('❌ Error searching flights:', error.message);
-            throw new Error(`Could not search flights: ${error.message}`);
+            throw new FlightServiceError(`Could not search flights: ${error.message}`, 'SEARCH_FLIGHTS_FAILED');
         }
     }
 
@@ -119,6 +124,33 @@ class FlightService {
         try {
             await client.query('BEGIN');
 
+            // Kiểm tra departure_time < arrival_time
+            if (new Date(data.departure_time) >= new Date(data.arrival_time)) {
+                throw new FlightServiceError('Departure time must be before arrival time', 'INVALID_TIME');
+            }
+
+            // Kiểm tra source_airport_id != destination_airport_id
+            if (data.source_airport_id === data.destination_airport_id) {
+                throw new FlightServiceError('Source and destination airports must be different', 'INVALID_AIRPORTS');
+            }
+
+            // Kiểm tra khóa ngoại
+            const aircraftCheck = await client.query('SELECT 1 FROM aircrafts WHERE id = $1', [data.aircraft_id]);
+            if (aircraftCheck.rows.length === 0) {
+                throw new FlightServiceError('Invalid aircraft_id', 'INVALID_AIRCRAFT');
+            }
+            const airportCheck = await client.query(
+                'SELECT id FROM airports WHERE id IN ($1, $2)',
+                [data.source_airport_id, data.destination_airport_id]
+            );
+            if (airportCheck.rows.length !== 2) {
+                throw new FlightServiceError('Invalid source or destination airport', 'INVALID_AIRPORT');
+            }
+
+            // Chuẩn hóa thời gian
+            const departureTime = new Date(data.departure_time).toISOString();
+            const arrivalTime = new Date(data.arrival_time).toISOString();
+
             // 1. Insert into flights table
             const insertFlightQuery = `
                 INSERT INTO flights (
@@ -128,19 +160,18 @@ class FlightService {
                 VALUES ($1, $2, $3, $4, $5, $6)
                 RETURNING id, aircraft_id;
             `;
-            const newFlightId = crypto.randomUUID(); // Generate UUID for new flight
+            const newFlightId = crypto.randomUUID();
             const flightValues = [
                 newFlightId,
                 data.aircraft_id,
                 data.source_airport_id,
                 data.destination_airport_id,
-                data.departure_time,
-                data.arrival_time,
+                departureTime,
+                arrivalTime,
             ];
             const flightResult = await client.query(insertFlightQuery, flightValues);
             const newFlight = flightResult.rows[0];
             const aircraftId = newFlight.aircraft_id;
-
 
             // 2. Get seat layout from aircraft_seat_layout
             const seatLayoutQuery = `
@@ -151,50 +182,74 @@ class FlightService {
             `;
             const seatLayoutResult = await client.query(seatLayoutQuery, [aircraftId]);
             if (seatLayoutResult.rows.length === 0) {
-                throw new Error('Seat layout not found for selected aircraft');
+                throw new FlightServiceError('Seat layout not found for selected aircraft', 'NO_SEAT_LAYOUT');
             }
 
-            const seatDetailsValues = [];
-            for (const row of seatLayoutResult.rows) {
-                for (let i = 0; i < row.capacity; i++) {
-                    seatDetailsValues.push([
-                        crypto.randomUUID(),
-                        newFlightId,
-                        row.travel_class_id,
-                    ]);
-                }
+            // Kiểm tra tổng số ghế
+            const totalSeatsQuery = `
+                SELECT total_seats
+                FROM aircraft_types at
+                JOIN aircrafts a ON at.id = a.aircraft_type_id
+                WHERE a.id = $1
+            `;
+            const totalSeatsResult = await client.query(totalSeatsQuery, [aircraftId]);
+            const totalSeats = totalSeatsResult.rows[0].total_seats;
+            const totalCapacity = seatLayoutResult.rows.reduce((sum, row) => sum + row.capacity, 0);
+            if (totalCapacity > totalSeats) {
+                throw new FlightServiceError(
+                    `Total seat capacity (${totalCapacity}) exceeds aircraft's total seats (${totalSeats})`,
+                    'EXCEEDS_CAPACITY'
+                );
             }
+
+            // Tạo seat_details
+            const seatDetailsValues = seatLayoutResult.rows.flatMap(row =>
+                Array.from({ length: row.capacity }, () => [
+                    crypto.randomUUID(),
+                    newFlightId,
+                    row.travel_class_id,
+                ])
+            );
 
             if (seatDetailsValues.length > 0) {
                 const insertSeatQuery = `
                     INSERT INTO seat_details (id, flight_id, travel_class_id)
-                    SELECT unnest($1::uuid[]), unnest($2::uuid[]), unnest($3::uuid[]);
+                    SELECT unnest($1::uuid[]), unnest($2::uuid[]), unnest($3::uuid[])
                 `;
-                const seatArrays = [
-                    seatDetailsValues.map(r => r[0]),
-                    seatDetailsValues.map(r => r[1]),
-                    seatDetailsValues.map(r => r[2]),
-                ];
-                await client.query(insertSeatQuery, seatArrays);
+                const ids = seatDetailsValues.map(r => r[0]);
+                const flightIds = seatDetailsValues.map(r => r[1]);
+                const travelClassIds = seatDetailsValues.map(r => r[2]);
+                await client.query(insertSeatQuery, [ids, flightIds, travelClassIds]);
+
+                // Chèn vào flight_costs
+                const costValues = seatDetailsValues.map(row => [
+                    row[0], // seat_id
+                    departureTime, // valid_from_date
+                    arrivalTime, // valid_to_date
+                    100.00, // Giả định chi phí mặc định
+                ]);
+                const insertCostQuery = `
+                    INSERT INTO flight_costs (seat_id, valid_from_date, valid_to_date, cost)
+                    SELECT unnest($1::uuid[]), unnest($2::timestamp[]), unnest($3::timestamp[]), unnest($4::decimal[])
+                `;
+                await client.query(insertCostQuery, [
+                    costValues.map(r => r[0]),
+                    costValues.map(r => r[1]),
+                    costValues.map(r => r[2]),
+                    costValues.map(r => r[3]),
+                ]);
             }
 
-
-
             await client.query('COMMIT');
-
-            // Return the created flight details (you might want to fetch it again with JOINs)
-            // Or construct a response object
-            return this.getFlightById(newFlightId); // Fetch the flight with all details
-
+            return this.getFlightById(newFlightId);
         } catch (error) {
             await client.query('ROLLBACK');
             console.error('❌ Error creating flight:', error.message);
-            throw new Error(`Could not create flight: ${error.message}`);
+            throw new FlightServiceError(`Could not create flight: ${error.message}`, 'CREATE_FLIGHT_FAILED');
         } finally {
             client.release();
         }
     }
-
 
     /**
      * Cập nhật thông tin chuyến bay.
@@ -203,60 +258,95 @@ class FlightService {
      * @returns {Promise<Object>} The updated flight.
      */
     async updateFlight(id, data) {
-       const client = await db.connect();
-       try {
-           await client.query('BEGIN');
+        const client = await db.connect();
+        try {
+            await client.query('BEGIN');
 
-           // Build dynamic update query
-           const fields = [];
-           const values = [];
-           let paramIndex = 1;
+            // Kiểm tra departure_time < arrival_time
+            if (data.departure_time && data.arrival_time && new Date(data.departure_time) >= new Date(data.arrival_time)) {
+                throw new FlightServiceError('Departure time must be before arrival time', 'INVALID_TIME');
+            }
 
-           // Only allow updating certain fields
-           const allowedFields = [
-             'aircraft_id',
-             'source_airport_id', 'destination_airport_id',
-             'departure_time', 'arrival_time'
-           ];
+            // Kiểm tra source_airport_id != destination_airport_id
+            if (data.source_airport_id && data.destination_airport_id && data.source_airport_id === data.destination_airport_id) {
+                throw new FlightServiceError('Source and destination airports must be different', 'INVALID_AIRPORTS');
+            }
 
-           allowedFields.forEach(field => {
-               if (data[field] !== undefined) {
-                   fields.push(`${field} = $${paramIndex++}`);
-                   values.push(data[field]);
-               }
-           });
+            // Kiểm tra khóa ngoại
+            if (data.aircraft_id) {
+                const aircraftCheck = await client.query('SELECT 1 FROM aircrafts WHERE id = $1', [data.aircraft_id]);
+                if (aircraftCheck.rows.length === 0) {
+                    throw new FlightServiceError('Invalid aircraft_id', 'INVALID_AIRCRAFT');
+                }
+            }
+            if (data.source_airport_id || data.destination_airport_id) {
+                const airportsToCheck = [];
+                if (data.source_airport_id) airportsToCheck.push(data.source_airport_id);
+                if (data.destination_airport_id) airportsToCheck.push(data.destination_airport_id);
+                if (airportsToCheck.length > 0) {
+                    const airportCheck = await client.query(
+                        'SELECT id FROM airports WHERE id = ANY($1::uuid[])',
+                        [airportsToCheck]
+                    );
+                    if (airportCheck.rows.length !== airportsToCheck.length) {
+                        throw new FlightServiceError('Invalid source or destination airport', 'INVALID_AIRPORT');
+                    }
+                }
+            }
 
-           if (fields.length === 0) {
-               throw new Error('No valid fields provided for update');
-           }
+            // Chuẩn hóa thời gian
+            if (data.departure_time) data.departure_time = new Date(data.departure_time).toISOString();
+            if (data.arrival_time) data.arrival_time = new Date(data.arrival_time).toISOString();
 
-           values.push(id); // Add ID for WHERE clause
+            // Build dynamic update query
+            const fields = [];
+            const values = [];
+            let paramIndex = 1;
 
-           const updateQuery = `
-               UPDATE flights
-               SET ${fields.join(', ')}
-               WHERE id = $${paramIndex}
-               RETURNING *;
-           `;
+            const allowedFields = [
+                'aircraft_id',
+                'source_airport_id',
+                'destination_airport_id',
+                'departure_time',
+                'arrival_time'
+            ];
 
-           const result = await client.query(updateQuery, values);
+            allowedFields.forEach(field => {
+                if (data[field] !== undefined) {
+                    fields.push(`${field} = $${paramIndex++}`);
+                    values.push(data[field]);
+                }
+            });
 
-           if (result.rows.length === 0) {
-               throw new Error('Flight not found');
-           }
+            if (fields.length === 0) {
+                throw new FlightServiceError('No valid fields provided for update', 'NO_FIELDS_TO_UPDATE');
+            }
 
-           await client.query('COMMIT');
-           return this.getFlightById(id); // Return updated flight with full details
+            values.push(id);
 
-       } catch (error) {
-           await client.query('ROLLBACK');
-           console.error(`❌ Error updating flight ${id}:`, error.message);
-           throw new Error(`Could not update flight: ${error.message}`);
-       } finally {
-           client.release();
-       }
+            const updateQuery = `
+                UPDATE flights
+                SET ${fields.join(', ')}
+                WHERE id = $${paramIndex}
+                RETURNING *;
+            `;
+
+            const result = await client.query(updateQuery, values);
+
+            if (result.rows.length === 0) {
+                throw new FlightServiceError('Flight not found', 'FLIGHT_NOT_FOUND');
+            }
+
+            await client.query('COMMIT');
+            return this.getFlightById(id);
+        } catch (error) {
+            await client.query('ROLLBACK');
+            console.error(`❌ Error updating flight ${id}:`, error.message);
+            throw new FlightServiceError(`Could not update flight: ${error.message}`, 'UPDATE_FLIGHT_FAILED');
+        } finally {
+            client.release();
+        }
     }
-
 
     /**
      * Trì hoãn chuyến bay.
@@ -271,7 +361,16 @@ class FlightService {
         try {
             await client.query('BEGIN');
 
-            // 1. Cập nhật bảng flights
+            // Kiểm tra departure_time < arrival_time
+            if (new Date(newDeparture) >= new Date(newArrival)) {
+                throw new FlightServiceError('Departure time must be before arrival time', 'INVALID_TIME');
+            }
+
+            // Chuẩn hóa thời gian
+            const departureTime = new Date(newDeparture).toISOString();
+            const arrivalTime = new Date(newArrival).toISOString();
+
+            // Cập nhật bảng flights
             const updateFlightQuery = `
                 UPDATE flights
                 SET departure_time = $1,
@@ -279,22 +378,17 @@ class FlightService {
                 WHERE id = $3
                 RETURNING *;
             `;
-            const flightResult = await client.query(updateFlightQuery, [newDeparture, newArrival, flightId]);
+            const flightResult = await client.query(updateFlightQuery, [departureTime, arrivalTime, flightId]);
             if (flightResult.rows.length === 0) {
-                throw new Error('Flight not found');
+                throw new FlightServiceError('Flight not found', 'FLIGHT_NOT_FOUND');
             }
-            const updatedFlight = flightResult.rows[0];
 
-            // This logic needs re-evaluation based on where cancellation policy/deadline is stored in V2.
-            // Assuming cancellation deadline is per reservation or a general flight rule.
-            // If per reservation, you might update a field in reservations.
-            // If general rule, no DB update needed here, logic lives elsewhere.
-
-            return this.getFlightById(flightId); // Return updated flight with full details
+            await client.query('COMMIT');
+            return this.getFlightById(flightId);
         } catch (error) {
             await client.query('ROLLBACK');
             console.error(`❌ Error delaying flight ${flightId}:`, error.message);
-            throw new Error(`Could not delay flight: ${error.message}`);
+            throw new FlightServiceError(`Could not delay flight: ${error.message}`, 'DELAY_FLIGHT_FAILED');
         } finally {
             client.release();
         }
@@ -311,24 +405,27 @@ class FlightService {
         try {
             await client.query('BEGIN');
 
-            // Xoá các ghế liên quan và chuyến bay
+            // Kiểm tra chuyến bay tồn tại
+            const flightCheck = await client.query('SELECT 1 FROM flights WHERE id = $1', [flightId]);
+            if (flightCheck.rows.length === 0) {
+                throw new FlightServiceError('Flight not found', 'FLIGHT_NOT_FOUND');
+            }
+
+            // Xóa seat_details và flights
             await client.query('DELETE FROM seat_details WHERE flight_id = $1', [flightId]);
             const flightRes = await client.query('DELETE FROM flights WHERE id = $1 RETURNING *', [flightId]);
-            if (flightRes.rows.length === 0) throw new Error('Flight not found');
             const cancelledFlight = flightRes.rows[0];
-
 
             await client.query('COMMIT');
             return cancelledFlight;
-        } catch (err) {
+        } catch (error) {
             await client.query('ROLLBACK');
-            console.error(`❌ Error cancelling flight ${flightId}:`, err.message);
-            throw new Error(`Could not cancel flight: ${err.message}`);
+            console.error(`❌ Error cancelling flight ${flightId}:`, error.message);
+            throw new FlightServiceError(`Could not cancel flight: ${error.message}`, 'CANCEL_FLIGHT_FAILED');
         } finally {
             client.release();
         }
     }
-
 
     /**
      * Xoá cứng chuyến bay – CHỈ khi chưa có đặt chỗ/chỗ ngồi liên quan.
@@ -340,33 +437,33 @@ class FlightService {
         try {
             await client.query('BEGIN');
 
-            // Check for related seat_details
+            // Kiểm tra seat_details
             const seatDetailsRef = await client.query(
                 'SELECT 1 FROM seat_details WHERE flight_id = $1 LIMIT 1',
                 [id]
             );
             if (seatDetailsRef.rows.length) {
-                throw new Error('Cannot delete: flight has related seat details');
+                throw new FlightServiceError('Cannot delete: flight has related seat details', 'FLIGHT_HAS_SEATS');
             }
 
-            // Now delete the flight
+            // Xóa chuyến bay
             const deleteResult = await client.query('DELETE FROM flights WHERE id = $1 RETURNING id', [id]);
 
             if (deleteResult.rows.length === 0) {
-                 throw new Error('Flight not found'); // Should not happen if no seat_details/costs found
+                throw new FlightServiceError('Flight not found', 'FLIGHT_NOT_FOUND');
             }
 
             await client.query('COMMIT');
             return { deleted: true };
-
         } catch (error) {
             await client.query('ROLLBACK');
             console.error(`❌ Error deleting flight ${id}:`, error.message);
-            throw new Error(`Could not delete flight: ${error.message}`);
+            throw new FlightServiceError(`Could not delete flight: ${error.message}`, 'DELETE_FLIGHT_FAILED');
         } finally {
             client.release();
         }
     }
+
     /**
      * Lấy danh sách hành khách trên một chuyến bay cụ thể.
      * @param {string} flightId - UUID chuyến bay.
@@ -377,19 +474,24 @@ class FlightService {
             const query = `
                 SELECT
                     sd.id AS seat_detail_id,
-                    tc.name AS travel_class_name
+                    tc.name AS travel_class_name,
+                    p.first_name,
+                    p.last_name,
+                    p.email,
+                    p.phone_number
                 FROM seat_details sd
                 JOIN travel_classes tc ON sd.travel_class_id = tc.id
+                LEFT JOIN reservations r ON sd.id = r.seat_id
+                LEFT JOIN passengers p ON r.passenger_id = p.id
                 WHERE sd.flight_id = $1;
             `;
             const result = await db.query(query, [flightId]);
             return result.rows;
         } catch (error) {
             console.error(`❌ Error fetching passengers for flight ${flightId}:`, error.message);
-            throw new Error(`Could not fetch passengers for flight: ${error.message}`);
+            throw new FlightServiceError(`Could not fetch passengers for flight: ${error.message}`, 'FETCH_PASSENGERS_FAILED');
         }
     }
-
 }
 
 module.exports = new FlightService();

@@ -84,11 +84,11 @@ router.post('/passengers', authenticate, authorize(['admin']), validateCreatePas
 router.put('/passengers/:id', authenticate, authorize(['admin']), validateUpdatePassenger, handleValidationErrors, PassengerController.update);
 router.delete('/passengers/:id', authenticate, authorize(['admin']), validateGetPassengerById, handleValidationErrors, PassengerController.delete);
 
-// Reservation Routes (Customer for create/cancel/get by passenger, Admin for getById/getAll)
-router.post('/reservations', authenticate, authorize(['customer']), validateCreateReservation, handleValidationErrors, ReservationController.create);
-router.get('/reservations/:id', authenticate, validateGetReservationById, handleValidationErrors, ReservationController.getById); // Auth for customer or admin
-router.put('/reservations/:id/cancel', authenticate, authorize(['customer']), validateCancelReservation, handleValidationErrors, ReservationController.cancel); // Assuming validateCancelReservation exists
-router.get('/passengers/:passengerId/reservations', authenticate, authorize(['customer', 'admin']), validateGetReservationsByPassengerId, handleValidationErrors, ReservationController.getReservationsByPassengerId);
+// Reservation Routes (Passenger for create/cancel/get by passenger, Admin for getById/getAll)
+router.post('/reservations', authenticate, authorize(['passenger']), validateCreateReservation, handleValidationErrors, ReservationController.create);
+router.get('/reservations/:id', authenticate, validateGetReservationById, handleValidationErrors, ReservationController.getById); // Auth for passenger or admin
+router.put('/reservations/:id/cancel', authenticate, authorize(['passenger']), validateCancelReservation, handleValidationErrors, ReservationController.cancel); // Assuming validateCancelReservation exists
+router.get('/passengers/:passengerId/reservations', authenticate, authorize(['passenger', 'admin']), validateGetReservationsByPassengerId, handleValidationErrors, ReservationController.getReservationsByPassengerId);
 router.get('/reservations', authenticate, authorize(['admin']), ReservationController.getAll); // Assuming getAll method in ReservationController
 
 // Service Offering Routes (Admin only for CRUD)

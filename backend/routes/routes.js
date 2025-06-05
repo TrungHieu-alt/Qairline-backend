@@ -14,6 +14,7 @@ const FlightController = require('../controllers/flightController');
 const PassengerController = require('../controllers/passengerController');
 const ReservationController = require('../controllers/reservationController');
 const ServiceOfferingController = require('../controllers/serviceOfferingController');
+const TravelClassController = require('../controllers/travelClassController');
 const CityController = require('../controllers/cityController');
 const CountryController = require('../controllers/countryController');
 const StatisticController = require('../controllers/statisticController');
@@ -34,6 +35,7 @@ const { validateCreateReservation, validateGetReservationById, validateCancelRes
 const { validateCreateServiceOffering, validateGetServiceOfferingById, validateUpdateServiceOffering, validateDeleteServiceOffering } = require('../middlewares/validateServiceOffering');
 const { validateCreateCity, validateUpdateCity, validateGetCityById, validateDeleteCity, validateGetAllCities } = require('../middlewares/validateCity'); // Assuming GetAll exists or will be created
 const { validateCreateCountry, validateUpdateCountry, validateGetCountryById, validateDeleteCountry, validateGetAllCountries } = require('../middlewares/validateCountry'); // Assuming GetAll exists or will be created
+const { validateCreateTravelClass, validateUpdateTravelClass, validateGetTravelClassById, validateDeleteTravelClass } = require('../middlewares/validateTravelClass');
 
 
 // Auth Routes
@@ -90,6 +92,13 @@ router.get('/reservations/:id', authenticate, validateGetReservationById, handle
 router.put('/reservations/:id/cancel', authenticate, authorize(['passenger']), validateCancelReservation, handleValidationErrors, ReservationController.cancel); // Assuming validateCancelReservation exists
 router.get('/passengers/:passengerId/reservations', authenticate, authorize(['passenger', 'admin']), validateGetReservationsByPassengerId, handleValidationErrors, ReservationController.getReservationsByPassengerId);
 router.get('/reservations', authenticate, authorize(['admin']), ReservationController.getAll); // Assuming getAll method in ReservationController
+
+// Travel Class Routes (Admin for create/update/delete, Public for get)
+router.get('/ticket-classes', TravelClassController.getAll);
+router.get('/ticket-classes/:id', validateGetTravelClassById, handleValidationErrors, TravelClassController.getById);
+router.post('/ticket-classes', authenticate, authorize(['admin']), validateCreateTravelClass, handleValidationErrors, TravelClassController.create);
+router.put('/ticket-classes/:id', authenticate, authorize(['admin']), validateUpdateTravelClass, handleValidationErrors, TravelClassController.update);
+router.delete('/ticket-classes/:id', authenticate, authorize(['admin']), validateDeleteTravelClass, handleValidationErrors, TravelClassController.delete);
 
 // Service Offering Routes (Admin only for CRUD)
 router.get('/service-offerings', ServiceOfferingController.getAll);

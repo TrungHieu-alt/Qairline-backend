@@ -52,6 +52,7 @@ Thành công: `201 Created` cho đăng ký hoặc `200 OK` cho đăng nhập.
 |-------------|----------|-------|-------|
 |`GET`|`/flights`|Công khai|Danh sách chuyến bay.|
 |`GET`|`/flights/:id`|Công khai|Chi tiết chuyến bay.|
+|`GET`|`/flights/:id/passengers`|Admin|Danh sách hành khách của chuyến bay.|
 |`POST`|`/flights/search`|Công khai|Tìm chuyến bay theo chặng.|
 |`POST`|`/flights`|Admin|Tạo chuyến bay mới.|
 |`PUT`|`/flights/:id/delay`|Admin|Dời thời gian bay.|
@@ -455,5 +456,14 @@ Kết quả trả về dạng:
   ]
 }
 ```
+
+## 15. API Loại máy bay
+| Phương thức | Endpoint | Quyền | Mô tả |
+|-------------|----------|-------|-------|
+|`GET`|`/aircraft-types`|Công khai|Danh sách loại máy bay.|
+|`GET`|`/aircraft-types/:id`|Công khai|Chi tiết loại máy bay.|
+|`POST`|`/aircraft-types`|Admin|Tạo loại máy bay.|
+|`PUT`|`/aircraft-types/:id`|Admin|Cập nhật loại máy bay.|
+|`DELETE`|`/aircraft-types/:id`|Admin|Xoá loại máy bay.|
 
 Tài liệu trên bao quát toàn bộ endpoint hiện có của hệ thống. Hãy gửi token qua header `Authorization: Bearer <token>` khi gọi các API yêu cầu xác thực.

@@ -1,6 +1,7 @@
 -- +goose Up
 CREATE TABLE seat_details (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    seat_number TEXT NOT NULL,
     travel_class_id UUID NOT NULL,
     flight_id UUID NOT NULL,
     CONSTRAINT fk_travel_class

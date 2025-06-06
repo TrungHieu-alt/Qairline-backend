@@ -119,11 +119,11 @@ class PassengerService {
 
     /**
      * Searches for passenger records based on provided filters.
-     * @param {Object} filters - Optional filters (email, firstName, lastName, phoneNumber).
+     * @param {Object} filters - Optional filters (email, firstName, lastName, phone_number).
      * @returns {Promise<Array<Object>>} An array of matching passenger records.
      */
     async searchPassengers(filters = {}) {
-        const { email, firstName, lastName, phoneNumber } = filters;
+        const { email, firstName, lastName, phone_number } = filters;
         const queryParts = [];
         const values = [];
         let paramIndex = 1;
@@ -140,9 +140,9 @@ class PassengerService {
             queryParts.push(`last_name ILIKE $${paramIndex++}`);
             values.push(`%${lastName}%`);
         }
-        if (phoneNumber) {
+        if (phone_number) {
             queryParts.push(`phone_number ILIKE $${paramIndex++}`);
-            values.push(`%${phoneNumber}%`);
+            values.push(`%${phone_number}%`);
         }
 
         const whereClause = queryParts.length > 0 ? `WHERE ${queryParts.join(' AND ')}` : '';

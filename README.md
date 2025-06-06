@@ -39,7 +39,7 @@ Không cần gửi `Authorization` cho các API xác thực.
   "password": "secret",
   "firstName": "A",
   "lastName": "B",
-  "phoneNumber": "0123456789"
+  "phone_number": "0123456789"
 }
 ```
 

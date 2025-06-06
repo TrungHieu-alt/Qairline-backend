@@ -55,9 +55,11 @@ class ReservationService {
   async getReservationById(id) {
     const query = `
       SELECT r.id, r.passenger_id, r.seat_id, r.reservation_date,
-             ps.status AS payment_status, ps.amount, ps.due_date
+             ps.status AS payment_status, ps.amount, ps.due_date,
+             p.phone_number
       FROM reservations r
       LEFT JOIN payment_statuses ps ON r.id = ps.reservation_id
+      LEFT JOIN passengers p ON r.passenger_id = p.id
       WHERE r.id = $1;
     `;
     const result = await db.query(query, [id]);
@@ -96,9 +98,11 @@ class ReservationService {
   async getAllReservations() {
     const query = `
       SELECT r.id, r.passenger_id, r.seat_id, r.reservation_date,
-             ps.status AS payment_status, ps.amount, ps.due_date
+             ps.status AS payment_status, ps.amount, ps.due_date,
+             p.phone_number
       FROM reservations r
-      LEFT JOIN payment_statuses ps ON r.id = ps.reservation_id;
+      LEFT JOIN payment_statuses ps ON r.id = ps.reservation_id
+      LEFT JOIN passengers p ON r.passenger_id = p.id;
     `;
     const result = await db.query(query);
     return result.rows;
@@ -112,9 +116,11 @@ class ReservationService {
   async getReservationsByPassengerId(passengerId) {
     const query = `
       SELECT r.id, r.passenger_id, r.seat_id, r.reservation_date,
-             ps.status AS payment_status, ps.amount, ps.due_date
+             ps.status AS payment_status, ps.amount, ps.due_date,
+             p.phone_number
       FROM reservations r
       LEFT JOIN payment_statuses ps ON r.id = ps.reservation_id
+      LEFT JOIN passengers p ON r.passenger_id = p.id
       WHERE r.passenger_id = $1;
     `;
     const result = await db.query(query, [passengerId]);

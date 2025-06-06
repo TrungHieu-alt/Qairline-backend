@@ -156,7 +156,7 @@ Tạo mới: `201 Created`. Các thao tác khác trả về `200 OK` cùng cấu
 ```json
 {
   "success": true,
-  "data": { /* thông tin đặt chỗ */ }
+  "data": { /* thông tin đặt chỗ kèm số điện thoại */ }
 }
 ```
 

@@ -46,6 +46,7 @@ class StatisticService {
         p.first_name,
         p.last_name,
         sd.id AS seat_detail_id, -- Include seat detail ID
+        sd.seat_number,
         tc.name AS travel_class_name, -- Assuming travel_classes table has name
         ps.amount AS paid_amount, -- Amount from payment_statuses
         ps.status AS payment_status, -- Status from payment_statuses ('Y'/'N')

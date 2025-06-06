@@ -202,24 +202,33 @@ class FlightService {
                 );
             }
 
-            // Tạo seat_details
-            const seatDetailsValues = seatLayoutResult.rows.flatMap(row =>
-                Array.from({ length: row.capacity }, () => [
-                    crypto.randomUUID(),
-                    newFlightId,
-                    row.travel_class_id,
-                ])
-            );
+            // Tạo seat_details cùng seat_number
+            const seatLetters = ['A', 'B', 'C', 'D', 'E', 'F'];
+            let seatIndex = 0;
+            const seatDetailsValues = [];
+            for (const row of seatLayoutResult.rows) {
+                for (let i = 0; i < row.capacity; i++) {
+                    const seatNumber = `${Math.floor(seatIndex / seatLetters.length) + 1}${seatLetters[seatIndex % seatLetters.length]}`;
+                    seatDetailsValues.push([
+                        crypto.randomUUID(),
+                        newFlightId,
+                        row.travel_class_id,
+                        seatNumber,
+                    ]);
+                    seatIndex++;
+                }
+            }
 
             if (seatDetailsValues.length > 0) {
                 const insertSeatQuery = `
-                    INSERT INTO seat_details (id, flight_id, travel_class_id)
-                    SELECT unnest($1::uuid[]), unnest($2::uuid[]), unnest($3::uuid[])
+                    INSERT INTO seat_details (id, flight_id, travel_class_id, seat_number)
+                    SELECT unnest($1::uuid[]), unnest($2::uuid[]), unnest($3::uuid[]), unnest($4::text[])
                 `;
                 const ids = seatDetailsValues.map(r => r[0]);
                 const flightIds = seatDetailsValues.map(r => r[1]);
                 const travelClassIds = seatDetailsValues.map(r => r[2]);
-                await client.query(insertSeatQuery, [ids, flightIds, travelClassIds]);
+                const seatNumbers = seatDetailsValues.map(r => r[3]);
+                await client.query(insertSeatQuery, [ids, flightIds, travelClassIds, seatNumbers]);
 
                 // Chèn vào flight_costs
                 const costValues = seatDetailsValues.map(row => [
@@ -474,6 +483,7 @@ class FlightService {
             const query = `
                 SELECT
                     sd.id AS seat_detail_id,
+                    sd.seat_number,
                     tc.name AS travel_class_name,
                     p.first_name,
                     p.last_name,

@@ -773,10 +773,12 @@ export const getRevenueByTravelClass = async () => {
 export const getCities = async () => {
   try {
     const response = await axios.get(`${API_URL}/cities`, {
-      headers: getAuthHeaders(),
-      'Cache-Control': 'no-cache',
-      Pragma: 'no-cache',
-      Expires: '0',
+      headers: {
+        ...getAuthHeaders(),
+        'Cache-Control': 'no-cache',
+        Pragma: 'no-cache',
+        Expires: '0',
+      },
     });
     return response.data;
   } catch (error) {
@@ -1002,10 +1004,12 @@ export const deleteAirline = async (id) => {
 export const getAirports = async () => {
   try {
     const response = await axios.get(`${API_URL}/airports`, {
-      headers: getAuthHeaders(),
-      'Cache-Control': 'no-cache',
-      Pragma: 'no-cache',
-      Expires: '0',
+      headers: {
+        ...getAuthHeaders(),
+        'Cache-Control': 'no-cache',
+        Pragma: 'no-cache',
+        Expires: '0',
+      },
     });
     return response.data;
   } catch (error) {

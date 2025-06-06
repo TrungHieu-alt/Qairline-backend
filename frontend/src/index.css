@@ -1,0 +1,32 @@
+@import url('https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@300;400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap');
+
+html {
+    scroll-behavior: smooth;
+}
+
+body {
+    font-family: 'Be Vietnam Pro', sans-serif;
+}
+
+.parallax {
+    background-attachment: fixed;
+    background-position: center;
+    background-repeat: no-repeat;
+    background-size: cover;
+}
+
+/* Tiêu đề chính */
+h1, h2 {
+    font-weight: 700;
+}
+
+/* Nội dung chính */
+p, span {
+    font-weight: 400;
+}
+
+/* Thông tin quan trọng */
+.important-info {
+    font-weight: 600;
+}

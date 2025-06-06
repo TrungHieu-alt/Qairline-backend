@@ -7,10 +7,10 @@ const PassengerService = require('./PassengerService'); // Needs to be created
 
 class AuthService {
 
-    async registerPassenger({ email, password, firstName, lastName, phoneNumber, address, city, state, zipcode, country }) {
+    async registerPassenger({ email, password, firstName, lastName, phone_number, address, city, state, zipcode, country }) {
         // Logic đăng ký passenger
         // 1. Validate input
-        if (!email || !password || !firstName || !lastName || !phoneNumber) {
+        if (!email || !password || !firstName || !lastName || !phone_number) {
             throw new Error('Missing required passenger registration fields');
         }
         if (!process.env.JWT_SECRET) {
@@ -62,7 +62,7 @@ class AuthService {
                  firstName,
                  lastName,
                  email,
-                 phoneNumber,
+                 phone_number,
                  address,
                  city,
                  state,

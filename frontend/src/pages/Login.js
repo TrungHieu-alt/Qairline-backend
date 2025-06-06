@@ -18,33 +18,35 @@ function Login() {
       let res;
       if (role === 'customer') {
         res = await loginCustomer(data);
-        if (!res.data || !res.data.user || !res.data.user.id) {
+        const userData = res.data.data;
+        if (!userData || !userData.user || !userData.user.id) {
           throw new Error('Dữ liệu người dùng không hợp lệ');
         }
-        login(res.data);
-        localStorage.setItem('token', res.data.token);
-        localStorage.setItem('userId', res.data.user.id);
-        localStorage.setItem('email', res.data.user.email);
+        login(userData);
+        localStorage.setItem('token', userData.token);
+        localStorage.setItem('userId', userData.user.id);
+        localStorage.setItem('email', userData.user.email);
         localStorage.setItem('role', 'customer');
-        localStorage.setItem('username', res.data.user.username || '');
-        localStorage.setItem('first_name', res.data.user.first_name);
-        localStorage.setItem('last_name', res.data.user.last_name || '');
+        localStorage.setItem('username', userData.user.username || '');
+        localStorage.setItem('first_name', userData.user.first_name);
+        localStorage.setItem('last_name', userData.user.last_name || '');
         navigate('/');
       } else {
         res = await loginEmployee(data);
         console.log('📊 Phản hồi từ API đăng nhập nhân viên:', res.data);
-        if (!res.data || !res.data.employee || !res.data.employee.id) {
+        const employeeData = res.data.data;
+        if (!employeeData || !employeeData.employee || !employeeData.employee.id) {
           throw new Error('Dữ liệu nhân viên không hợp lệ');
         }
         // Chuẩn hóa vai trò trước khi lưu
-        const employeeRole = res.data.employee.role.toLowerCase();
-        login(res.data);
-        localStorage.setItem('token', res.data.token);
-        localStorage.setItem('userId', res.data.employee.id);
-        localStorage.setItem('email', res.data.employee.email);
+        const employeeRole = employeeData.employee.role.toLowerCase();
+        login(employeeData);
+        localStorage.setItem('token', employeeData.token);
+        localStorage.setItem('userId', employeeData.employee.id);
+        localStorage.setItem('email', employeeData.employee.email);
         localStorage.setItem('role', employeeRole);
-        localStorage.setItem('first_name', res.data.employee.first_name || '');
-        localStorage.setItem('last_name', res.data.employee.last_name || '');
+        localStorage.setItem('first_name', employeeData.employee.first_name || '');
+        localStorage.setItem('last_name', employeeData.employee.last_name || '');
         if (employeeRole === 'admin') {
           navigate('/admin');
         } else {

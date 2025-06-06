@@ -13,12 +13,13 @@ function Register() {
   const onSubmit = async (data) => {
     try {
       const res = await registerCustomer(data);
-      localStorage.setItem('token', res.data.token);
-      localStorage.setItem('userId', res.data.user.id);
-      localStorage.setItem('email', res.data.user.email);
-      localStorage.setItem('username', res.data.user.username || '');
-      localStorage.setItem('first_name', res.data.user.first_name);
-      localStorage.setItem('last_name', res.data.user.last_name || '');
+      const userData = res.data.data;
+      localStorage.setItem('token', userData.token);
+      localStorage.setItem('userId', userData.user.id);
+      localStorage.setItem('email', userData.user.email);
+      localStorage.setItem('username', userData.user.username || '');
+      localStorage.setItem('first_name', userData.user.first_name);
+      localStorage.setItem('last_name', userData.user.last_name || '');
       alert('Đăng ký thành công!');
       navigate('/login');
     } catch (err) {

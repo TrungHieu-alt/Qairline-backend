@@ -94,7 +94,7 @@ function Flights() {
       console.log('Search data:', searchData);
       const res = await searchFlights(searchData);
       console.log('Search response:', res.data);
-      const flightsData = Array.isArray(res.data) ? res.data : [];
+      const flightsData = Array.isArray(res.data.data) ? res.data.data : [];
       const sortedFlights = flightsData.sort((a, b) => new Date(a.departure_time) - new Date(b.departure_time));
       setFlights(sortedFlights);
       if (sortedFlights.length === 0) {

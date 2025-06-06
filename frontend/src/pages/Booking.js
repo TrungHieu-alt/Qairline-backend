@@ -170,7 +170,7 @@ function Booking() {
         };
         console.log('Sending customer data:', customerData); // Debug
         const res = await axios.post(`${API_URL}/api/customer/register`, customerData);
-        setCustomer(res.data.user);
+        setCustomer(res.data.data.user);
       } else {
         setCustomer({
           ...customer,

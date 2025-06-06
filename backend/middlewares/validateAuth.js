@@ -8,6 +8,7 @@ const errorMessages = {
   unique: (field) => `${field} đã tồn tại`,
   minLength: (field, min) => `${field} phải có ít nhất ${min} ký tự`,
   invalidPassword: 'Mật khẩu phải chứa ít nhất 1 chữ hoa, 1 số và 1 ký tự đặc biệt',
+  invalidFormat: (field) => `${field} không hợp lệ`,
 };
 
 // Validate đăng nhập
@@ -45,6 +46,21 @@ exports.validateRegister = [
         }
       } catch (err) {
         throw new Error(`Lỗi kiểm tra email: ${err.message}`);
+      }
+      return true;
+    }),
+  body('phoneNumber')
+    .notEmpty().withMessage(errorMessages.required('Số điện thoại'))
+    .trim()
+    .matches(/^\d{10}$/).withMessage(errorMessages.invalidFormat('Số điện thoại'))
+    .custom(async (value) => {
+      try {
+        const result = await pool.query('SELECT phone_number FROM passengers WHERE phone_number = $1', [value]);
+        if (result.rows.length > 0) {
+          throw new Error(errorMessages.unique('Số điện thoại'));
+        }
+      } catch (err) {
+        throw new Error(`Lỗi kiểm tra số điện thoại: ${err.message}`);
       }
       return true;
     }),

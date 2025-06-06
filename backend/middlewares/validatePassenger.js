@@ -40,7 +40,7 @@ exports.validateCreatePassenger = [
   body('phone_number')
     .notEmpty().withMessage(errorMessages.required('Số điện thoại'))
     .trim()
-    .matches(/^\+?[1-9]\d{1,14}$/).withMessage(errorMessages.invalidFormat('Số điện thoại'))
+    .matches(/^\d{10}$/).withMessage(errorMessages.invalidFormat('Số điện thoại'))
     .custom(async (value) => {
       try {
         const result = await pool.query('SELECT phone_number FROM passengers WHERE phone_number = $1', [value]);
@@ -102,7 +102,7 @@ exports.validateUpdatePassenger = [
     .optional()
     .notEmpty().withMessage(errorMessages.notEmpty('Số điện thoại'))
     .trim()
-    .matches(/^\+?[1-9]\d{1,14}$/).withMessage(errorMessages.invalidFormat('Số điện thoại'))
+    .matches(/^\d{10}$/).withMessage(errorMessages.invalidFormat('Số điện thoại'))
     .custom(async (value, { req }) => {
       if (value) {
         try {

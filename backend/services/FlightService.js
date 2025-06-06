@@ -404,10 +404,10 @@ class FlightService {
     }
 
     /**
-     * Hủy chuyến bay.
-     * Cập nhật trạng thái chuyến bay và chỗ ngồi liên quan. Không tạo thông báo tự động.
+     * Hủy chuyến bay bằng cách xoá toàn bộ chỗ ngồi và đặt chỗ liên quan,
+     * sau đó xoá bản ghi chuyến bay. Đây là thao tác xoá cứng và không tạo thông báo tự động.
      * @param {string} flightId - UUID chuyến bay.
-     * @returns {Promise<Object>} The cancelled flight.
+     * @returns {Promise<Object>} Thông tin chuyến bay trước khi bị xoá.
      */
     async cancelFlight(flightId) {
         const client = await db.connect();
@@ -437,7 +437,9 @@ class FlightService {
     }
 
     /**
-     * Xoá cứng chuyến bay – CHỈ khi chưa có đặt chỗ/chỗ ngồi liên quan.
+     * Xoá cứng chuyến bay.
+     * Chỉ thực hiện khi chuyến bay không còn bất kỳ đặt chỗ nào. Các bản ghi
+     * chỗ ngồi (seat_details) sẽ được xoá trước khi xoá chuyến bay.
      * @param {string} id - UUID chuyến bay.
      * @returns {Promise<{deleted: true}>}
      */
@@ -446,14 +448,21 @@ class FlightService {
         try {
             await client.query('BEGIN');
 
-            // Kiểm tra seat_details
-            const seatDetailsRef = await client.query(
-                'SELECT 1 FROM seat_details WHERE flight_id = $1 LIMIT 1',
+            // Kiểm tra xem còn đặt chỗ nào cho chuyến bay này không
+            const reservationCheck = await client.query(
+                `SELECT 1
+                 FROM reservations r
+                 JOIN seat_details sd ON sd.id = r.seat_id
+                 WHERE sd.flight_id = $1
+                 LIMIT 1`,
                 [id]
             );
-            if (seatDetailsRef.rows.length) {
-                throw new FlightServiceError('Cannot delete: flight has related seat details', 'FLIGHT_HAS_SEATS');
+            if (reservationCheck.rows.length) {
+                throw new FlightServiceError('Cannot delete: flight has reservations', 'FLIGHT_HAS_RESERVATIONS');
             }
+
+            // Xoá seat_details (nếu tồn tại) trước khi xoá chuyến bay
+            await client.query('DELETE FROM seat_details WHERE flight_id = $1', [id]);
 
             // Xóa chuyến bay
             const deleteResult = await client.query('DELETE FROM flights WHERE id = $1 RETURNING id', [id]);

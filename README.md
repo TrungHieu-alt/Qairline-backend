@@ -71,8 +71,10 @@ Thành công: `201 Created` cho đăng ký hoặc `200 OK` cho đăng nhập.
 |`POST`|`/flights/search`|Công khai|Tìm chuyến bay theo chặng.|
 |`POST`|`/flights`|Admin|Tạo chuyến bay mới.|
 |`PUT`|`/flights/:id/delay`|Admin|Dời thời gian bay.|
-|`PUT`|`/flights/:id/cancel`|Admin|Huỷ chuyến bay.|
-|`DELETE`|`/flights/:id`|Admin|Xoá chuyến bay.|
+|`PUT`|`/flights/:id/cancel`|Admin|Huỷ chuyến bay (xoá toàn bộ chỗ ngồi và đặt chỗ).|
+|`DELETE`|`/flights/:id`|Admin|Xoá chuyến bay (chỉ khi không còn đặt chỗ).|
+
+`DELETE /flights/:id` chỉ thành công nếu không tồn tại đặt chỗ liên quan đến chuyến bay. Nếu đã huỷ chuyến bay bằng endpoint `/flights/:id/cancel` và muốn xoá hoàn toàn dữ liệu, hãy gọi xoá sau khi hủy.
 
 ### Ví dụ body tạo chuyến bay
 ```json

@@ -37,7 +37,7 @@ exports.validateCreateReservation = [
     .custom(async (value) => {
       try {
         // Kiểm tra ghế tồn tại
-        const seatResult = await pool.query('SELECT id, flight_id FROM seats WHERE id = $1', [value]);
+        const seatResult = await pool.query('SELECT id, flight_id FROM seat_details WHERE id = $1', [value]);
         if (seatResult.rows.length === 0) {
           throw new Error(errorMessages.notFound('Ghế'));
         }
@@ -102,7 +102,7 @@ exports.validateGetReservationById = [
 
 // Validate lấy các đặt chỗ theo ID hành khách
 exports.validateGetReservationsByPassengerId = [
-  param('pid')
+  param('passengerId')
     .isUUID().withMessage(errorMessages.invalidUUID('ID hành khách'))
     .custom(async (value) => {
       try {
@@ -124,11 +124,12 @@ exports.validateCancelReservation = [
     .isUUID().withMessage(errorMessages.invalidUUID('ID đặt chỗ'))
     .custom(async (id) => {
       try {
-        const result = await pool.query('SELECT id, payment_status FROM reservations WHERE id = $1', [id]);
-        if (result.rows.length === 0) {
+        const reservation = await pool.query('SELECT id FROM reservations WHERE id = $1', [id]);
+        if (reservation.rows.length === 0) {
           throw new Error(errorMessages.notFound('Đặt chỗ'));
         }
-        if (result.rows[0].payment_status === 'PAID') {
+        const paymentResult = await pool.query('SELECT status FROM payment_statuses WHERE reservation_id = $1', [id]);
+        if (paymentResult.rows.length > 0 && paymentResult.rows[0].status === 'Y') {
           throw new Error(errorMessages.invalidReservation);
         }
       } catch (err) {

@@ -12,7 +12,7 @@ function Promotions() {
     useEffect(() => {
         setLoading(true);
         getAnnouncements()
-            .then(res => setPromotions(res.data || []))
+            .then(res => setPromotions(res.data.data || []))
             .catch(err => {
                 setError('Không thể tải danh sách thông báo: ' + err.message);
                 // Sử dụng dữ liệu tĩnh làm dự phòng

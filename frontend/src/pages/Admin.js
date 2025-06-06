@@ -22,8 +22,8 @@ function Admin() {
             getTicketStats()
         ])
             .then(([flightsRes, statsRes]) => {
-                setFlights(flightsRes.data);
-                setStats(statsRes.data);
+                setFlights(flightsRes.data.data);
+                setStats(statsRes.data.data);
             })
             .catch(err => setError('Không thể tải dữ liệu: ' + err.message))
             .finally(() => setLoading(false));

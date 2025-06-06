@@ -11,7 +11,7 @@ function AdminAnnouncements() {
     useEffect(() => {
         setLoading(true);
         getAnnouncements()
-            .then(res => setAnnouncements(res.data || []))
+            .then(res => setAnnouncements(res.data.data || []))
             .catch(err => setError('Không thể tải thông báo: ' + err.message))
             .finally(() => setLoading(false));
     }, []);
@@ -20,7 +20,7 @@ function AdminAnnouncements() {
         e.preventDefault();
         try {
             const newAnnouncement = await createAnnouncement(form);
-            setAnnouncements([...announcements, newAnnouncement.data]);
+            setAnnouncements([...announcements, newAnnouncement.data.data]);
             setForm({ title: '', content: '', expiryDate: '', image: '' });
             alert('Đăng thông báo thành công!');
         } catch (err) {

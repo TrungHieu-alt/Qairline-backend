@@ -46,12 +46,12 @@ export const registerCustomer = async (data) => {
       headers: { 'Content-Type': 'application/json' },
     });
     // Lưu token và role vào localStorage
-    if (response.data.token) {
-      localStorage.setItem('token', response.data.token);
-      localStorage.setItem('user_id', response.data.user?.id);
-      localStorage.setItem('role', response.data.user?.role);
+    if (response.data?.data?.token) {
+      localStorage.setItem('token', response.data.data.token);
+      localStorage.setItem('user_id', response.data.data.user?.id);
+      localStorage.setItem('role', response.data.data.user?.role);
     }
-    return response.data;
+    return response;
   } catch (error) {
     handleApiError(error);
   }
@@ -68,12 +68,12 @@ export const loginCustomer = async (data) => {
     const payload = { email: data.email, password: data.password };
     const response = await axios.post(`${API_URL}/auth/login`, payload, { headers: getAuthHeaders() });
     // Lưu token và role vào localStorage
-    if (response.data.token) {
-      localStorage.setItem('token', response.data.token);
-      localStorage.setItem('user_id', response.data.user?.id);
-      localStorage.setItem('role', response.data.user?.role);
+    if (response.data?.data?.token) {
+      localStorage.setItem('token', response.data.data.token);
+      localStorage.setItem('user_id', response.data.data.user?.id);
+      localStorage.setItem('role', response.data.data.user?.role);
     }
-    return response.data;
+    return response;
   } catch (error) {
     handleApiError(error);
   }
@@ -88,7 +88,7 @@ export const loginCustomer = async (data) => {
 export const getFlights = async () => {
   try {
     const response = await axios.get(`${API_URL}/flights`, { headers: getAuthHeaders() });
-    return response.data;
+    return response;
   } catch (error) {
     handleApiError(error);
   }
@@ -103,7 +103,7 @@ export const getFlights = async () => {
 export const searchFlights = async (data) => {
   try {
     const response = await axios.post(`${API_URL}/flights/search`, data, { headers: getAuthHeaders() });
-    return response.data;
+    return response;
   } catch (error) {
     handleApiError(error);
   }
@@ -118,7 +118,7 @@ export const searchFlights = async (data) => {
 export const getFlight = async (flightId) => {
   try {
     const response = await axios.get(`${API_URL}/flights/${flightId}`, { headers: getAuthHeaders() });
-    return response.data;
+    return response;
   } catch (error) {
     handleApiError(error);
   }
@@ -135,7 +135,7 @@ export const delayFlight = async (id, data) => {
   try {
     checkAdminRole();
     const response = await axios.put(`${API_URL}/flights/${id}/delay`, data, { headers: getAuthHeaders() });
-    return response.data;
+    return response;
   } catch (error) {
     handleApiError(error);
   }
@@ -151,7 +151,7 @@ export const createFlight = async (data) => {
   try {
     checkAdminRole();
     const response = await axios.post(`${API_URL}/flights`, data, { headers: getAuthHeaders() });
-    return response.data;
+    return response;
   } catch (error) {
     handleApiError(error);
   }
@@ -167,7 +167,7 @@ export const cancelFlight = async (id) => {
   try {
     checkAdminRole();
     const response = await axios.put(`${API_URL}/flights/${id}/cancel`, {}, { headers: getAuthHeaders() });
-    return response.data;
+    return response;
   } catch (error) {
     handleApiError(error);
   }
@@ -183,7 +183,7 @@ export const deleteFlight = async (id) => {
   try {
     checkAdminRole();
     const response = await axios.delete(`${API_URL}/flights/${id}`, { headers: getAuthHeaders() });
-    return response.data;
+    return response;
   } catch (error) {
     handleApiError(error);
   }
@@ -199,7 +199,7 @@ export const deleteFlight = async (id) => {
 export const bookTicket = async (data) => {
   try {
     const response = await axios.post(`${API_URL}/reservations`, data, { headers: getAuthHeaders() });
-    return response.data;
+    return response;
   } catch (error) {
     handleApiError(error);
   }
@@ -214,7 +214,7 @@ export const bookTicket = async (data) => {
 export const cancelTicket = async (id) => {
   try {
     const response = await axios.put(`${API_URL}/reservations/${id}/cancel`, {}, { headers: getAuthHeaders() });
-    return response.data;
+    return response;
   } catch (error) {
     handleApiError(error);
   }
@@ -232,7 +232,7 @@ export const getTickets = async () => {
       throw new Error('Không tìm thấy passengerId trong localStorage');
     }
     const response = await axios.get(`${API_URL}/passengers/${passengerId}/reservations`, { headers: getAuthHeaders() });
-    return response.data;
+    return response;
   } catch (error) {
     handleApiError(error);
   }
@@ -247,7 +247,7 @@ export const getTickets = async () => {
 export const getReservation = async (id) => {
   try {
     const response = await axios.get(`${API_URL}/reservations/${id}`, { headers: getAuthHeaders() });
-    return response.data;
+    return response;
   } catch (error) {
     handleApiError(error);
   }
@@ -264,7 +264,7 @@ export const createPassenger = async (data) => {
   try {
     checkAdminRole();
     const response = await axios.post(`${API_URL}/passengers`, data, { headers: getAuthHeaders() });
-    return response.data;
+    return response;
   } catch (error) {
     handleApiError(error);
   }
@@ -280,7 +280,7 @@ export const getPassenger = async (id) => {
   try {
     checkAdminRole();
     const response = await axios.get(`${API_URL}/passengers/${id}`, { headers: getAuthHeaders() });
-    return response.data;
+    return response;
   } catch (error) {
     handleApiError(error);
   }
@@ -297,7 +297,7 @@ export const updatePassenger = async (id, data) => {
   try {
     checkAdminRole();
     const response = await axios.put(`${API_URL}/passengers/${id}`, data, { headers: getAuthHeaders() });
-    return response.data;
+    return response;
   } catch (error) {
     handleApiError(error);
   }
@@ -313,7 +313,7 @@ export const deletePassenger = async (id) => {
   try {
     checkAdminRole();
     const response = await axios.delete(`${API_URL}/passengers/${id}`, { headers: getAuthHeaders() });
-    return response.data;
+    return response;
   } catch (error) {
     handleApiError(error);
   }
@@ -331,10 +331,10 @@ export const linkPassengerToUser = async (passengerId, userId) => {
     checkAdminRole();
     const response = await axios.post(`${API_URL}/passengers/${passengerId}/link-user/${userId}`, {}, { headers: getAuthHeaders() });
     // Lưu passengerId vào localStorage nếu liên kết thành công
-    if (response.data.passengerId) {
-      localStorage.setItem('passengerId', response.data.passengerId);
+    if (response.data?.data?.passengerId) {
+      localStorage.setItem('passengerId', response.data.data.passengerId);
     }
-    return response.data;
+    return response;
   } catch (error) {
     handleApiError(error);
   }
@@ -349,7 +349,7 @@ export const linkPassengerToUser = async (passengerId, userId) => {
 export const getAnnouncements = async () => {
   try {
     const response = await axios.get(`${API_URL}/announcements`, { headers: getAuthHeaders() });
-    return response.data;
+    return response;
   } catch (error) {
     handleApiError(error);
   }
@@ -365,7 +365,7 @@ export const createAnnouncement = async (data) => {
   try {
     checkAdminRole();
     const response = await axios.post(`${API_URL}/announcements`, data, { headers: getAuthHeaders() });
-    return response.data;
+    return response;
   } catch (error) {
     handleApiError(error);
   }
@@ -382,7 +382,7 @@ export const updateAnnouncement = async (id, data) => {
   try {
     checkAdminRole();
     const response = await axios.put(`${API_URL}/announcements/${id}`, data, { headers: getAuthHeaders() });
-    return response.data;
+    return response;
   } catch (error) {
     handleApiError(error);
   }
@@ -398,7 +398,7 @@ export const deleteAnnouncement = async (id) => {
   try {
     checkAdminRole();
     const response = await axios.delete(`${API_URL}/announcements/${id}`, { headers: getAuthHeaders() });
-    return response.data;
+    return response;
   } catch (error) {
     handleApiError(error);
   }
@@ -413,7 +413,7 @@ export const deleteAnnouncement = async (id) => {
 export const getAircrafts = async () => {
   try {
     const response = await axios.get(`${API_URL}/aircrafts`, { headers: getAuthHeaders() });
-    return response.data;
+    return response;
   } catch (error) {
     handleApiError(error);
   }
@@ -428,7 +428,7 @@ export const getAircrafts = async () => {
 export const getAircraftById = async (id) => {
   try {
     const response = await axios.get(`${API_URL}/aircrafts/${id}`, { headers: getAuthHeaders() });
-    return response.data;
+    return response;
   } catch (error) {
     handleApiError(error);
   }
@@ -444,7 +444,7 @@ export const createAircraft = async (data) => {
   try {
     checkAdminRole();
     const response = await axios.post(`${API_URL}/aircrafts`, data, { headers: getAuthHeaders() });
-    return response.data;
+    return response;
   } catch (error) {
     handleApiError(error);
   }
@@ -461,7 +461,7 @@ export const updateAircraft = async (id, data) => {
   try {
     checkAdminRole();
     const response = await axios.put(`${API_URL}/aircrafts/${id}`, data, { headers: getAuthHeaders() });
-    return response.data;
+    return response;
   } catch (error) {
     handleApiError(error);
   }
@@ -477,7 +477,7 @@ export const deleteAircraft = async (id) => {
   try {
     checkAdminRole();
     const response = await axios.delete(`${API_URL}/aircrafts/${id}`, { headers: getAuthHeaders() });
-    return response.data;
+    return response;
   } catch (error) {
     handleApiError(error);
   }
@@ -492,7 +492,7 @@ export const deleteAircraft = async (id) => {
 export const getTicketClasses = async () => {
   try {
     const response = await axios.get(`${API_URL}/ticket-classes`, { headers: getAuthHeaders() });
-    return response.data;
+    return response;
   } catch (error) {
     handleApiError(error);
   }
@@ -508,7 +508,7 @@ export const createTicketClass = async (data) => {
   try {
     checkAdminRole();
     const response = await axios.post(`${API_URL}/ticket-classes`, data, { headers: getAuthHeaders() });
-    return response.data;
+    return response;
   } catch (error) {
     handleApiError(error);
   }
@@ -525,7 +525,7 @@ export const updateTicketClass = async (id, data) => {
   try {
     checkAdminRole();
     const response = await axios.put(`${API_URL}/ticket-classes/${id}`, data, { headers: getAuthHeaders() });
-    return response.data;
+    return response;
   } catch (error) {
     handleApiError(error);
   }
@@ -541,7 +541,7 @@ export const deleteTicketClass = async (id) => {
   try {
     checkAdminRole();
     const response = await axios.delete(`${API_URL}/ticket-classes/${id}`, { headers: getAuthHeaders() });
-    return response.data;
+    return response;
   } catch (error) {
     handleApiError(error);
   }
@@ -555,7 +555,7 @@ export const deleteTicketClass = async (id) => {
 export const getPerksForTicketClass = async () => {
   try {
     const response = await axios.get(`${API_URL}/service-offerings`, { headers: getAuthHeaders() });
-    return response.data;
+    return response;
   } catch (error) {
     handleApiError(error);
   }
@@ -570,7 +570,7 @@ export const getPerksForTicketClass = async () => {
 export const getServiceOfferings = async () => {
   try {
     const response = await axios.get(`${API_URL}/service-offerings`, { headers: getAuthHeaders() });
-    return response.data;
+    return response;
   } catch (error) {
     handleApiError(error);
   }
@@ -586,7 +586,7 @@ export const getServiceOfferings = async () => {
 export const getServiceOfferingById = async (travelClassId, serviceId) => {
   try {
     const response = await axios.get(`${API_URL}/service-offerings/${travelClassId}/${serviceId}`, { headers: getAuthHeaders() });
-    return response.data;
+    return response;
   } catch (error) {
     handleApiError(error);
   }
@@ -602,7 +602,7 @@ export const createServiceOffering = async (data) => {
   try {
     checkAdminRole();
     const response = await axios.post(`${API_URL}/service-offerings`, data, { headers: getAuthHeaders() });
-    return response.data;
+    return response;
   } catch (error) {
     handleApiError(error);
   }
@@ -620,7 +620,7 @@ export const updateServiceOffering = async (travelClassId, serviceId, data) => {
   try {
     checkAdminRole();
     const response = await axios.put(`${API_URL}/service-offerings/${travelClassId}/${serviceId}`, data, { headers: getAuthHeaders() });
-    return response.data;
+    return response;
   } catch (error) {
     handleApiError(error);
   }
@@ -637,7 +637,7 @@ export const deleteServiceOffering = async (travelClassId, serviceId) => {
   try {
     checkAdminRole();
     const response = await axios.delete(`${API_URL}/service-offerings/${travelClassId}/${serviceId}`, { headers: getAuthHeaders() });
-    return response.data;
+    return response;
   } catch (error) {
     handleApiError(error);
   }
@@ -653,7 +653,7 @@ export const getAdminStats = async () => {
   try {
     checkAdminRole();
     const response = await axios.get(`${API_URL}/stats`, { headers: getAuthHeaders() });
-    return response.data;
+    return response;
   } catch (error) {
     handleApiError(error);
   }
@@ -668,7 +668,7 @@ export const getRecentBookings = async () => {
   try {
     checkAdminRole();
     const response = await axios.get(`${API_URL}/recent-bookings`, { headers: getAuthHeaders() });
-    return response.data;
+    return response;
   } catch (error) {
     handleApiError(error);
   }
@@ -683,7 +683,7 @@ export const getUpcomingFlights = async () => {
   try {
     checkAdminRole();
     const response = await axios.get(`${API_URL}/upcoming-flights`, { headers: getAuthHeaders() });
-    return response.data;
+    return response;
   } catch (error) {
     handleApiError(error);
   }
@@ -698,7 +698,7 @@ export const getBookingTrends = async () => {
   try {
     checkAdminRole();
     const response = await axios.get(`${API_URL}/booking-trends`, { headers: getAuthHeaders() });
-    return response.data;
+    return response;
   } catch (error) {
     handleApiError(error);
   }
@@ -713,7 +713,7 @@ export const getRevenueByTime = async () => {
   try {
     checkAdminRole();
     const response = await axios.get(`${API_URL}/stats/revenue-by-time`, { headers: getAuthHeaders() });
-    return response.data;
+    return response;
   } catch (error) {
     handleApiError(error);
   }
@@ -728,7 +728,7 @@ export const getRevenueByRoute = async () => {
   try {
     checkAdminRole();
     const response = await axios.get(`${API_URL}/stats/revenue-by-route`, { headers: getAuthHeaders() });
-    return response.data;
+    return response;
   } catch (error) {
     handleApiError(error);
   }
@@ -743,7 +743,7 @@ export const getRevenueByAirline = async () => {
   try {
     checkAdminRole();
     const response = await axios.get(`${API_URL}/stats/revenue-by-airline`, { headers: getAuthHeaders() });
-    return response.data;
+    return response;
   } catch (error) {
     handleApiError(error);
   }
@@ -758,7 +758,7 @@ export const getRevenueByTravelClass = async () => {
   try {
     checkAdminRole();
     const response = await axios.get(`${API_URL}/stats/revenue-by-travel-class`, { headers: getAuthHeaders() });
-    return response.data;
+    return response;
   } catch (error) {
     handleApiError(error);
   }
@@ -778,7 +778,7 @@ export const getCities = async () => {
       Pragma: 'no-cache',
       Expires: '0',
     });
-    return response.data;
+    return response;
   } catch (error) {
     handleApiError(error);
   }
@@ -794,7 +794,7 @@ export const getCityById = async (id) => {
   try {
     checkAdminRole();
     const response = await axios.get(`${API_URL}/cities/${id}`, { headers: getAuthHeaders() });
-    return response.data;
+    return response;
   } catch (error) {
     handleApiError(error);
   }
@@ -810,7 +810,7 @@ export const createCity = async (data) => {
   try {
     checkAdminRole();
     const response = await axios.post(`${API_URL}/cities`, data, { headers: getAuthHeaders() });
-    return response.data;
+    return response;
   } catch (error) {
     handleApiError(error);
   }
@@ -827,7 +827,7 @@ export const updateCity = async (id, data) => {
   try {
     checkAdminRole();
     const response = await axios.put(`${API_URL}/cities/${id}`, data, { headers: getAuthHeaders() });
-    return response.data;
+    return response;
   } catch (error) {
     handleApiError(error);
   }
@@ -843,7 +843,7 @@ export const deleteCity = async (id) => {
   try {
     checkAdminRole();
     const response = await axios.delete(`${API_URL}/cities/${id}`, { headers: getAuthHeaders() });
-    return response.data;
+    return response;
   } catch (error) {
     handleApiError(error);
   }
@@ -858,7 +858,7 @@ export const deleteCity = async (id) => {
 export const getCountries = async () => {
   try {
     const response = await axios.get(`${API_URL}/countries`, { headers: getAuthHeaders() });
-    return response.data;
+    return response;
   } catch (error) {
     handleApiError(error);
   }
@@ -874,7 +874,7 @@ export const getCountryById = async (id) => {
   try {
     checkAdminRole();
     const response = await axios.get(`${API_URL}/countries/${id}`, { headers: getAuthHeaders() });
-    return response.data;
+    return response;
   } catch (error) {
     handleApiError(error);
   }
@@ -890,7 +890,7 @@ export const createCountry = async (data) => {
   try {
     checkAdminRole();
     const response = await axios.post(`${API_URL}/countries`, data, { headers: getAuthHeaders() });
-    return response.data;
+    return response;
   } catch (error) {
     handleApiError(error);
   }
@@ -907,7 +907,7 @@ export const updateCountry = async (id, data) => {
   try {
     checkAdminRole();
     const response = await axios.put(`${API_URL}/countries/${id}`, data, { headers: getAuthHeaders() });
-    return response.data;
+    return response;
   } catch (error) {
     handleApiError(error);
   }
@@ -923,7 +923,7 @@ export const deleteCountry = async (id) => {
   try {
     checkAdminRole();
     const response = await axios.delete(`${API_URL}/countries/${id}`, { headers: getAuthHeaders() });
-    return response.data;
+    return response;
   } catch (error) {
     handleApiError(error);
   }
@@ -938,7 +938,7 @@ export const deleteCountry = async (id) => {
 export const getAirlines = async () => {
   try {
     const response = await axios.get(`${API_URL}/airlines`, { headers: getAuthHeaders() });
-    return response.data;
+    return response;
   } catch (error) {
     handleApiError(error);
   }
@@ -954,7 +954,7 @@ export const createAirline = async (data) => {
   try {
     checkAdminRole();
     const response = await axios.post(`${API_URL}/airlines`, data, { headers: getAuthHeaders() });
-    return response.data;
+    return response;
   } catch (error) {
     handleApiError(error);
   }
@@ -971,7 +971,7 @@ export const updateAirline = async (id, data) => {
   try {
     checkAdminRole();
     const response = await axios.put(`${API_URL}/airlines/${id}`, data, { headers: getAuthHeaders() });
-    return response.data;
+    return response;
   } catch (error) {
     handleApiError(error);
   }
@@ -987,7 +987,7 @@ export const deleteAirline = async (id) => {
   try {
     checkAdminRole();
     const response = await axios.delete(`${API_URL}/airlines/${id}`, { headers: getAuthHeaders() });
-    return response.data;
+    return response;
   } catch (error) {
     handleApiError(error);
   }
@@ -1007,7 +1007,7 @@ export const getAirports = async () => {
       Pragma: 'no-cache',
       Expires: '0',
     });
-    return response.data;
+    return response;
   } catch (error) {
     handleApiError(error);
   }
@@ -1022,7 +1022,7 @@ export const getAirports = async () => {
 export const getAirportById = async (id) => {
   try {
     const response = await axios.get(`${API_URL}/airports/${id}`, { headers: getAuthHeaders() });
-    return response.data;
+    return response;
   } catch (error) {
     handleApiError(error);
   }
@@ -1038,7 +1038,7 @@ export const createAirport = async (data) => {
   try {
     checkAdminRole();
     const response = await axios.post(`${API_URL}/airports`, data, { headers: getAuthHeaders() });
-    return response.data;
+    return response;
   } catch (error) {
     handleApiError(error);
   }
@@ -1055,7 +1055,7 @@ export const updateAirport = async (id, data) => {
   try {
     checkAdminRole();
     const response = await axios.put(`${API_URL}/airports/${id}`, data, { headers: getAuthHeaders() });
-    return response.data;
+    return response;
   } catch (error) {
     handleApiError(error);
   }
@@ -1071,7 +1071,7 @@ export const deleteAirport = async (id) => {
   try {
     checkAdminRole();
     const response = await axios.delete(`${API_URL}/airports/${id}`, { headers: getAuthHeaders() });
-    return response.data;
+    return response;
   } catch (error) {
     handleApiError(error);
   }

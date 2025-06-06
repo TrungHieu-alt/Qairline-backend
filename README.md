@@ -8,7 +8,7 @@ Backend QAirline được xây dựng với Node.js và Express. Mọi đường
 - Trường ngày giờ tuân theo chuẩn ISO-8601.
 - Các giá trị số (ví dụ `price`, `page`, `limit`) cần gửi dạng số.
 - Mã sân bay, mã quốc gia, mã hãng hàng không phải viết hoa với độ dài cố định.
-- Số điện thoại theo chuẩn E.164 (ví dụ `+84901234567`).
+- Số điện thoại phải gồm đúng 10 chữ số (ví dụ `0123456789`).
 - Trường `from_month`/`to_month` dùng định dạng `YYYY-MM`.
 - Các trường boolean như `is_offered` nhận `true`/`false`.
 - Trường trạng thái/loại chỉ nhận các giá trị hợp lệ:

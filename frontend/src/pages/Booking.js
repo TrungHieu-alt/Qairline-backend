@@ -48,9 +48,6 @@ function Booking() {
     last_name: '',
     password: '',
     seat_number: 'A1',
-    gender: '',
-    birth_date: '',
-    identity_number: '',
     phone_number: '',
     address: '',
     country: ''
@@ -93,9 +90,6 @@ function Booking() {
         last_name: customer.last_name || '',
         password: '',
         seat_number: 'A1',
-        gender: customer.gender || '',
-        birth_date: customer.birth_date ? new Date(customer.birth_date).toISOString().split('T')[0] : '',
-        identity_number: customer.identity_number || '',
         phone_number: customer.phone_number || '',
         address: customer.address || '',
         country: customer.country || ''
@@ -137,9 +131,6 @@ function Booking() {
     if (!formData.first_name) errors.first_name = 'Họ là bắt buộc';
     if (!formData.last_name) errors.last_name = 'Tên là bắt buộc';
     if (isNewCustomer && !formData.password) errors.password = 'Mật khẩu là bắt buộc';
-    if (formData.gender && !['male', 'female', 'other'].includes(formData.gender)) {
-      errors.gender = 'Giới tính không hợp lệ';
-    }
     return errors;
   };
 
@@ -161,9 +152,6 @@ function Booking() {
           email: email,
           password: formData.password,
           username: email.split('@')[0],
-          gender: formData.gender || null,
-          birth_date: formData.birth_date || null,
-          identity_number: formData.identity_number || null,
           phone_number: formData.phone_number || null,
           address: formData.address || null,
           country: formData.country || null
@@ -176,9 +164,6 @@ function Booking() {
           ...customer,
           first_name: formData.first_name,
           last_name: formData.last_name,
-          gender: formData.gender || null,
-          birth_date: formData.birth_date,
-          identity_number: formData.identity_number,
           phone_number: formData.phone_number,
           address: formData.address,
           country: formData.country
@@ -190,10 +175,7 @@ function Booking() {
       setStep(3);
     } catch (err) {
       console.error('Registration error:', err);
-      const errorMessage = err.response?.data?.error?.includes('customers_gender_check')
-        ? 'Giới tính không hợp lệ. Vui lòng chọn Nam, Nữ hoặc Khác.'
-        : 'Không thể đăng ký: ' + (err.response?.data?.error || err.message);
-      setError(errorMessage);
+      setError('Không thể đăng ký: ' + (err.response?.data?.error || err.message));
     } finally {
       setLoading(false);
     }
@@ -398,41 +380,7 @@ function Booking() {
                     {formErrors.password && <p className="text-red-500 text-sm mt-1">{formErrors.password}</p>}
                   </div>
                 )}
-                <div className="mb-4">
-                  <label className="block text-gray-700 font-medium mb-1">Giới tính</label>
-                  <select
-                    name="gender"
-                    value={formData.gender}
-                    onChange={handleInputChange}
-                    className="p-3 border border-green-200 rounded-lg w-full focus:ring-2 focus:ring-green-500 transition"
-                  >
-                    <option value="">Chọn giới tính</option>
-                    <option value="male">Nam</option>
-                    <option value="female">Nữ</option>
-                    <option value="other">Khác</option>
-                  </select>
-                  {formErrors.gender && <p className="text-red-500 text-sm mt-1">{formErrors.gender}</p>}
-                </div>
-                <div className="mb-4">
-                  <label className="block text-gray-600 font-medium mb-1">Ngày sinh</label>
-                  <input
-                    type="date"
-                    name="birth_date"
-                    value={formData.birth_date}
-                    onChange={handleInputChange}
-                    className="p-3 border border-green-200 rounded-lg w-full focus:ring-2 focus:ring-green-500 transition"
-                  />
-                </div>
-                <div className="mb-4">
-                  <label className="block text-gray-600 font-medium mb-1">Số CMND/CCCD</label>
-                  <input
-                    type="text"
-                    name="identity_number"
-                    value={formData.identity_number}
-                    onChange={handleInputChange}
-                    className="p-3 border border-green-200 rounded-lg w-full focus:ring-2 focus:ring-green-500 transition"
-                  />
-                </div>
+                
                 <div className="mb-4">
                   <label className="block text-gray-600 font-medium mb-1">Số điện thoại</label>
                   <input
@@ -537,7 +485,6 @@ function Booking() {
           </div>
           <div>
             <p className="text-sm text-gray-600 font-light">Số điện thoại: <span className="font-semibold text-green-800">{formData.phone_number || 'N/A'}</span></p>
-            <p className="text-sm text-gray-600 font-light mt-2">Số CMND/CCCD: <span className="font-semibold text-green-800">{formData.identity_number || 'N/A'}</span></p>
           </div>
         </div>
       </div>
@@ -614,7 +561,6 @@ function Booking() {
           </div>
           <div>
             <p className="text-sm text-gray-600 font-light">Số điện thoại: <span className="font-semibold text-green-800">{formData.phone_number || 'N/A'}</span></p>
-            <p className="text-sm text-gray-600 font-light mt-2">Số CMND/CCCD: <span className="font-semibold text-green-800">{formData.identity_number || 'N/A'}</span></p>
           </div>
         </div>
       </div>

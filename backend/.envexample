@@ -1,4 +1,13 @@
-DATABASE_URL="YOUR_DB_URL_STRING"
-PORT=3000
-JWT_SECRET="YOUR_SECRET_TOKEN"
+# PostgreSQL connection config
+PGUSER=your_postgres_username
+PGHOST=localhost
+PGPORT=5432
+PGDATABASE=your_database_name
+PGPASSWORD=your_password
+
+# Environment
+NODE_ENV=development
+
+# JWT Configuration
+JWT_SECRET=your_jwt_secret_key
 JWT_EXPIRES_IN=1d

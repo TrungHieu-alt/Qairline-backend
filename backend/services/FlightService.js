@@ -511,6 +511,48 @@ class FlightService {
             throw new FlightServiceError(`Could not fetch passengers for flight: ${error.message}`, 'FETCH_PASSENGERS_FAILED');
         }
     }
+
+    /**
+     * Lấy thông tin ghế của một chuyến bay cụ thể.
+     * @param {string} flightId - UUID chuyến bay.
+     * @returns {Promise<Array<Object>>} Danh sách ghế với thông tin chi tiết.
+     */
+    async getFlightSeats(flightId) {
+        try {
+            const query = `
+                SELECT 
+                    s.id,
+                    s.seat_number,
+                    tc.name as travel_class,
+                    CASE 
+                        WHEN r.id IS NOT NULL THEN true
+                        ELSE false
+                    END as is_reserved,
+                    fc.cost
+                FROM seats s
+                JOIN travel_classes tc ON s.travel_class_id = tc.id
+                LEFT JOIN reservations r ON s.id = r.seat_id AND r.flight_id = $1
+                LEFT JOIN flight_costs fc ON s.id = fc.seat_id
+                WHERE s.aircraft_id = (
+                    SELECT aircraft_id 
+                    FROM flights 
+                    WHERE id = $1
+                )
+                ORDER BY 
+                    CASE tc.name
+                        WHEN 'First' THEN 1
+                        WHEN 'Business' THEN 2
+                        WHEN 'Economy' THEN 3
+                    END,
+                    s.seat_number;
+            `;
+            const result = await db.query(query, [flightId]);
+            return result.rows;
+        } catch (error) {
+            console.error(`❌ Error fetching seats for flight ${flightId}:`, error.message);
+            throw new FlightServiceError(`Could not fetch seats for flight: ${error.message}`, 'FETCH_SEATS_FAILED');
+        }
+    }
 }
 
 module.exports = new FlightService();

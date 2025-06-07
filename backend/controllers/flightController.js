@@ -79,6 +79,15 @@ class FlightController {
     next(err);
   }
   }
+
+  async getFlightSeats(req, res, next) {
+    try {
+      const seats = await FlightService.getFlightSeats(req.params.id);
+      res.json({ success: true, data: seats });
+    } catch (error) {
+      next(error);
+    }
+  }
 }
 
 module.exports = new FlightController();

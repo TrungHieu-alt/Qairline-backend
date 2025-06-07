@@ -9,7 +9,7 @@ CREATE TABLE flight_costs (
     CONSTRAINT flight_costs_pk PRIMARY KEY (seat_id, valid_from_date),
     CONSTRAINT fk_seat
         FOREIGN KEY (seat_id)
-        REFERENCES seat_details (id)
+        REFERENCES seats (id)
         ON DELETE CASCADE,
     CONSTRAINT check_valid_dates CHECK (valid_from_date < valid_to_date)
 );

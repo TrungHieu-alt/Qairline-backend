@@ -70,12 +70,13 @@ router.delete('/announcements/:id', authenticate, authorize(['admin']), validate
 
 // Flight Routes (Admin for create/update/delete/cancel/delay, Public for search/get)
 router.get('/flights', FlightController.getAllFlights);
-router.get('/flights/:id', validateGetFlightById, handleValidationErrors, FlightController.getFlightById); // Assuming validateGetFlightById exists
+router.get('/flights/:id', validateGetFlightById, handleValidationErrors, FlightController.getFlightById);
+router.get('/flights/:id/seats', validateGetFlightById, handleValidationErrors, FlightController.getFlightSeats);
 router.post('/flights/search', validateSearchFlights, handleValidationErrors, FlightController.searchFlights);
 router.post('/flights', authenticate, authorize(['admin']), validateCreateFlight, handleValidationErrors, FlightController.createFlight);
 router.put('/flights/:id/delay', authenticate, authorize(['admin']), validateDelayFlight, handleValidationErrors, (req, res, next) => FlightController.delayFlight(req, res, next));
-router.put('/flights/:id/cancel', authenticate, authorize(['admin']), validateCancelFlight, handleValidationErrors, FlightController.cancelFlight); // Assuming validateCancelFlight exists
-router.delete('/flights/:id', authenticate, authorize(['admin']), validateDeleteFlight, handleValidationErrors, FlightController.deleteFlight); // Assuming validateDeleteFlight exists
+router.put('/flights/:id/cancel', authenticate, authorize(['admin']), validateCancelFlight, handleValidationErrors, FlightController.cancelFlight);
+router.delete('/flights/:id', authenticate, authorize(['admin']), validateDeleteFlight, handleValidationErrors, FlightController.deleteFlight);
 
 router.get('/flights/:id/passengers', authenticate, authorize(['admin']), validateGetFlightById, handleValidationErrors, FlightController.getPassengersOnFlight);
 

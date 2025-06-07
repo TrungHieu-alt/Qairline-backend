@@ -1,43 +1,43 @@
 const AnnouncementService = require('../services/AnnouncementService');
 
 class AnnouncementController {
-  async getAll(req, res) {
+  async getAll(req, res, next) {
     try {
       const announcements = await AnnouncementService.getAnnouncements(req.query);
       res.json({ success: true, data: announcements });
     } catch (err) {
-      throw err;
+      next(err);
     }
   }
 
-  async create(req, res) {
+  async create(req, res, next) {
     try {
       const announcement = await AnnouncementService.create(req.body);
       res.status(201).json({ success: true, data: announcement });
     } catch (err) {
-      throw err;
+      next(err);
     }
   }
 
-  async update(req, res) {
+  async update(req, res, next) {
     try {
       const announcement = await AnnouncementService.update(req.params.id, req.body);
       res.json({ success: true, data: announcement });
     } catch (err) {
-      throw err;
+      next(err);
     }
   }
 
-  async delete(req, res) {
+  async delete(req, res, next) {
     try {
       const announcement = await AnnouncementService.delete(req.params.id);
       res.json({ success: true, data: announcement });
     } catch (err) {
-      throw err;
+      next(err);
     }
   }
 
-  async getAnnouncementById(req, res) {
+  async getAnnouncementById(req, res, next) {
     try {
       const announcement = await AnnouncementService.getById(req.params.id);
       if (!announcement) {
@@ -45,7 +45,7 @@ class AnnouncementController {
       }
       res.json({ success: true, data: announcement });
     } catch (err) {
-      throw err;
+      next(err);
     }
   }
 }

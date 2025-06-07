@@ -47,7 +47,7 @@ export const checkPassengerEmail = async (email) => {
 // API Xác thực
 /**
  * Đăng ký hành khách mới
- * @param {Object} data - Dữ liệu đăng ký (email, password, first_name, last_name, phone_number)
+ * @param {Object} data - Dữ liệu đăng ký (email, password, first_name, last_name, phone_number, address, city, state, zipcode, country)
  * @returns {Promise} Promise trả về token và thông tin người dùng
  * @throws {Error} Nếu yêu cầu thất bại
  */
@@ -59,6 +59,11 @@ export const registerCustomer = async (data) => {
       firstName: data.first_name,
       lastName: data.last_name,
       phoneNumber: data.phone_number,
+      address: data.address,
+      city: data.city,
+      state: data.state,
+      zipcode: data.zipcode,
+      country: data.country,
     };
     const response = await axios.post(`${API_URL}/auth/register`, payload, {
       headers: { 'Content-Type': 'application/json' },

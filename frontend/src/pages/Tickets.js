@@ -226,7 +226,6 @@ function Tickets() {
         </div>
         <div>
           <p className="text-sm text-gray-600 font-light">Số điện thoại: <span className="font-semibold text-green-800">{trackedTicket.customer?.phone_number || 'N/A'}</span></p>
-          <p className="text-sm text-gray-600 font-light mt-2">Số CMND/CCCD: <span className="font-semibold text-green-800">{trackedTicket.customer?.identity_number || 'N/A'}</span></p>
         </div>
       </div>
     </div>
@@ -354,7 +353,6 @@ function Tickets() {
               </div>
               <div>
                 <p className="text-sm text-gray-600 font-light">Số điện thoại: <span className="font-semibold text-green-800">{item.customer?.phone_number || 'N/A'}</span></p>
-                <p className="text-sm text-gray-600 font-light mt-2">Số CMND/CCCD: <span className="font-semibold text-green-800">{item.customer?.identity_number || 'N/A'}</span></p>
               </div>
             </div>
           </div>

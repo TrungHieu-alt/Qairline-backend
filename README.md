@@ -20,7 +20,7 @@ Backend QAirline được xây dựng với Node.js và Express. Mọi đường
 
 ## URL cơ bản
 ```
-http://localhost:3000/api
+http://localhost:5000/api
 ```
 
 ## 1. API Xác thực

@@ -39,6 +39,7 @@ const { validateCreateAircraftType, validateUpdateAircraftType, validateGetAircr
 // Auth Routes
 router.post('/auth/register', validateRegister, handleValidationErrors, AuthController.registerPassenger);
 router.post('/auth/login', validateLogin, handleValidationErrors, AuthController.login);
+router.post( '/auth/register-admin', handleValidationErrors, AuthController.registerAdmin);
 
 // Aircraft Routes (Admin only for create/update/delete)
 router.get('/aircrafts', AircraftController.getAllAircrafts);

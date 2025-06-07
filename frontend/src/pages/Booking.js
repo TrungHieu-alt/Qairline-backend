@@ -1,9 +1,13 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
-import axios from 'axios';
 import { motion } from 'framer-motion';
+import {
+  getTicketClasses,
+  registerCustomer,
+  bookTicket,
+  checkPassengerEmail,
+} from '../services/api';
 
-const API_URL = 'http://localhost:3000';
 
 // Ánh xạ tên hiển thị hạng vé
 const classTypeNames = {
@@ -40,6 +44,13 @@ function Booking() {
   const flight = location.state?.flight || null;
   const ticketType = location.state?.ticketType || { tripType: 'one-way', classType: 'economy' };
 
+  useEffect(() => {
+    if (location.state?.formData?.seat_id) {
+      setFormData((prev) => ({ ...prev, ...location.state.formData }));
+      setStep(3);
+    }
+  }, [location.state]);
+
   const [email, setEmail] = useState('');
   const [customer, setCustomer] = useState(null);
   const [isNewCustomer, setIsNewCustomer] = useState(false);
@@ -47,6 +58,7 @@ function Booking() {
     first_name: '',
     last_name: '',
     password: '',
+    seat_id: '',
     seat_number: 'A1',
     gender: '',
     birth_date: '',
@@ -69,8 +81,8 @@ function Booking() {
   useEffect(() => {
     const fetchTicketClasses = async () => {
       try {
-        const res = await axios.get(`${API_URL}/api/ticket-classes`);
-        console.log('Ticket classes response:', res.data); // Debug
+        const res = await getTicketClasses();
+        console.log('Ticket classes response:', res.data);
         const classes = res.data.data || [];
         if (!classes.length) {
           console.warn('No ticket classes found');
@@ -92,6 +104,7 @@ function Booking() {
         first_name: customer.first_name || '',
         last_name: customer.last_name || '',
         password: '',
+        seat_id: '',
         seat_number: 'A1',
         gender: customer.gender || '',
         birth_date: customer.birth_date ? new Date(customer.birth_date).toISOString().split('T')[0] : '',
@@ -109,15 +122,11 @@ function Booking() {
     setLoading(true);
     try {
       console.log('Checking email:', email);
-      const res = await axios.get(`${API_URL}/api/check-email?email=${email}`);
-      console.log('Check email response:', res.data);
-      if (res.data.exists) {
-        const customerRes = await axios.get(`${API_URL}/api/customer/by-email/${email}`);
-        if (!customerRes.data.success) {
-          throw new Error(customerRes.data.error || 'Không thể lấy thông tin khách hàng');
-        }
-        console.log('Customer data:', customerRes.data.data);
-        setCustomer(customerRes.data.data);
+      const res = await checkPassengerEmail(email);
+      const passenger = res.data?.data?.[0] || res.data?.data;
+      if (passenger) {
+        console.log('Passenger data:', passenger);
+        setCustomer(passenger);
         setIsNewCustomer(false);
       } else {
         setIsNewCustomer(true);
@@ -169,8 +178,8 @@ function Booking() {
           country: formData.country || null
         };
         console.log('Sending customer data:', customerData); // Debug
-        const res = await axios.post(`${API_URL}/api/customer/register`, customerData);
-        setCustomer(res.data.data.user);
+        const res = await registerCustomer(customerData);
+        setCustomer(res.data.data.user || res.data.data);
       } else {
         setCustomer({
           ...customer,
@@ -214,14 +223,14 @@ function Booking() {
 
       const ticketData = {
         flight_id: flightId,
-        customer_id: customer.id,
+        passenger_id: customer.id,
         ticket_class_id: selectedClass.id,
-        seat_number: formData.seat_number || 'A1',
+        seat_id: formData.seat_id,
         cancellation_deadline: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(),
-        price: displayPrice
+        price: displayPrice,
       };
       console.log('Sending ticket data:', ticketData);
-      const response = await axios.post(`${API_URL}/api/tickets/book`, ticketData);
+      const response = await bookTicket(ticketData);
       console.log('Booking response:', response.data);
       setTicketCode(response.data.ticket.ticket_code); // Lưu mã code
       alert('Đặt vé thành công!');

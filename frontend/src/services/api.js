@@ -26,6 +26,24 @@ const handleApiError = (error) => {
   throw new Error(`Lỗi API: ${message}`);
 };
 
+/**
+ * Kiểm tra hành khách theo email
+ * @param {string} email - Địa chỉ email cần kiểm tra
+ * @returns {Promise} Promise trả về danh sách hành khách tìm được
+ * @throws {Error} Nếu yêu cầu thất bại
+ */
+export const checkPassengerEmail = async (email) => {
+  try {
+    const response = await axios.get(`${API_URL}/passengers`, {
+      params: { email },
+      headers: { 'Content-Type': 'application/json', ...getAuthHeaders() },
+    });
+    return response;
+  } catch (error) {
+    handleApiError(error);
+  }
+};
+
 // API Xác thực
 /**
  * Đăng ký hành khách mới

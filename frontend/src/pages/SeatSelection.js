@@ -81,13 +81,14 @@ const SeatSelection = () => {
       return;
     }
     setLoading(true);
-    // Chuyển về Booking.js với ghế đã chọn
+    const [, row, seatId] = selectedSeat.split('-');
+    const seatNumber = `${row}${seatId}`;
     navigate('/booking', {
       state: {
         flight,
         ticketType,
         customer,
-        formData: { ...formData, seat_number: selectedSeat }
+        formData: { ...formData, seat_id: seatId, seat_number: seatNumber }
       }
     });
   };

@@ -9,98 +9,98 @@ class AnnouncementService {
    * @returns {Promise<Object>} - { data: [], total: number }
    */
   async getAnnouncements(options = {}) {
-    const {
-      page = 1,
-      limit = 10,
-      status,
-      type,
-      titleKeyword, // New filter: keyword in title
-      startDate,    // New filter: start_date >= startDate
-      endDate       // New filter: start_date <= endDate
-    } = options; // Default pagination
-    const offset = (page - 1) * limit;
-
-    let query = `
-      SELECT id, title, content, type, status, start_date, end_date, priority, created_at, updated_at
-      FROM announcements
-      WHERE (end_date IS NULL OR end_date > NOW())
-    `;
-
-    const countQuery = `
-      SELECT COUNT(*)
-      FROM announcements
-      WHERE (end_date IS NULL OR end_date > NOW())
-    `;
-
-    const filterValues = [];
-    const countFilterValues = [];
-    let filterConditions = '';
-    let paramIndex = 1;
-
-    if (status) {
-        filterConditions += ` AND status = $${paramIndex}`;
-        filterValues.push(status);
-        countFilterValues.push(status);
-        paramIndex++;
-    }
-
-    if (type) {
-        filterConditions += ` AND type = $${paramIndex}`;
-        filterValues.push(type);
-        countFilterValues.push(type);
-        paramIndex++;
-    }
-
-    // New filter: search by keyword in title (case-insensitive)
-    if (titleKeyword) {
-        filterConditions += ` AND title ILIKE $${paramIndex}`; // ILIKE for case-insensitive
-        filterValues.push(`%${titleKeyword}%`); // Use % for partial matching
-        countFilterValues.push(`%${titleKeyword}%`);
-        paramIndex++;
-    }
-
-    // New filter: filter by start_date range
-    if (startDate) {
-        filterConditions += ` AND start_date >= $${paramIndex}`;
-        // Ensure startDate is a valid date object or string parseable by the DB driver
-        filterValues.push(startDate);
-        countFilterValues.push(startDate);
-        paramIndex++;
-    }
-
-    if (endDate) {
-        filterConditions += ` AND start_date <= $${paramIndex}`;
-         // Ensure endDate is a valid date object or string parseable by the DB driver
-        filterValues.push(endDate);
-        countFilterValues.push(endDate);
-        paramIndex++;
-    }
-    // TODO: Consider filtering by end_date range as well if needed.
-
-
-    query += filterConditions;
-    countQuery += filterConditions;
-
-    query += `
-      ORDER BY start_date DESC
-      LIMIT $${paramIndex} OFFSET $${paramIndex + 1};
-    `;
-    filterValues.push(limit);
-    filterValues.push(offset);
-
-
     try {
-      const result = await db.query(query, filterValues);
-      const countResult = await db.query(countQuery, countFilterValues); // Separate query for total count
+      const {
+        page = 1,
+        limit = 10,
+        status,
+        type,
+        titleKeyword,
+        startDate,
+        endDate
+      } = options;
+      const offset = (page - 1) * limit;
 
-      // No longer mapping to Announcement model
+      console.log('📝 Options received:', options);
+
+      const baseQuery = `
+        SELECT id, title, content, type, status, start_date, end_date, priority, created_at, updated_at
+        FROM announcements
+        WHERE (end_date IS NULL OR end_date > NOW())
+      `;
+
+      const baseCountQuery = `
+        SELECT COUNT(*)
+        FROM announcements
+        WHERE (end_date IS NULL OR end_date > NOW())
+      `;
+
+      const filterValues = [];
+      const countFilterValues = [];
+      const conditions = [];
+      let paramIndex = 1;
+
+      if (status) {
+          conditions.push(`status = $${paramIndex}`);
+          filterValues.push(status);
+          countFilterValues.push(status);
+          paramIndex++;
+      }
+
+      if (type) {
+          conditions.push(`type = $${paramIndex}`);
+          filterValues.push(type);
+          countFilterValues.push(type);
+          paramIndex++;
+      }
+
+      if (titleKeyword) {
+          conditions.push(`title ILIKE $${paramIndex}`);
+          filterValues.push(`%${titleKeyword}%`);
+          countFilterValues.push(`%${titleKeyword}%`);
+          paramIndex++;
+      }
+
+      if (startDate) {
+          conditions.push(`start_date >= $${paramIndex}`);
+          filterValues.push(startDate);
+          countFilterValues.push(startDate);
+          paramIndex++;
+      }
+
+      if (endDate) {
+          conditions.push(`start_date <= $${paramIndex}`);
+          filterValues.push(endDate);
+          countFilterValues.push(endDate);
+          paramIndex++;
+      }
+
+      const filterClause = conditions.length > 0 ? ` AND ${conditions.join(' AND ')}` : '';
+      
+      const finalQuery = `${baseQuery}${filterClause} ORDER BY start_date DESC LIMIT $${paramIndex} OFFSET $${paramIndex + 1}`;
+      const finalCountQuery = `${baseCountQuery}${filterClause}`;
+
+      filterValues.push(limit);
+      filterValues.push(offset);
+
+      console.log('🔍 Final Query:', finalQuery);
+      console.log('🔢 Filter Values:', filterValues);
+
+      const result = await db.query(finalQuery, filterValues);
+      const countResult = await db.query(finalCountQuery, countFilterValues);
+
+      console.log('✅ Query results:', {
+        data: result.rows,
+        total: parseInt(countResult.rows[0].count, 10)
+      });
+
       return {
           data: result.rows,
-          total: parseInt(countResult.rows[0].count, 10) // Return total for pagination
+          total: parseInt(countResult.rows[0].count, 10)
       };
 
     } catch (error) {
-      console.error('❌ Error fetching announcements:', error.message);
+      console.error('❌ Error in getAnnouncements:', error);
       throw new Error(`Could not fetch announcements: ${error.message}`);
     }
   }
@@ -149,11 +149,11 @@ class AnnouncementService {
       const values = [
         data.title,
         data.content,
-        data.type,
-        data.status,
-        data.start_date,
+        data.type || 'general',
+        data.status || 'active',
+        data.start_date || new Date(),
         data.end_date,
-        data.priority
+        data.priority || 0
       ];
       const result = await client.query(query, values);
 
@@ -195,7 +195,7 @@ class AnnouncementService {
         data.start_date,
         data.end_date,
         data.priority,
-        id // UUID id
+        id
       ];
       const result = await client.query(query, values);
 
@@ -230,7 +230,7 @@ class AnnouncementService {
         WHERE id = $1
         RETURNING id, title, content, type, status, start_date, end_date, priority, created_at, updated_at;
       `;
-      const result = await client.query(query, [id]); // UUID id
+      const result = await client.query(query, [id]);
 
       if (result.rows.length === 0) {
         throw new Error('Announcement not found');
